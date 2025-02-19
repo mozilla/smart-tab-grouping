@@ -1,0 +1,30 @@
+[project]
+name = "smart-tab-grouping"
+version = "0.1.0"
+description = "Data and exploration of models for grouping tabs in a web browser."
+authors = [
+    {name = "Rolf Rando",email = "rrando@mozilla.com"}
+]
+license = {text = "MOZILLA 2.0"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit (>=1.42.1,<2.0.0)",
+    "transformers (>=4.49.0,<5.0.0)",
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "sentence-transformers (>=3.4.1,<4.0.0)",
+    "pip (>=25.0.1,<26.0.0)",
+    "nltk (>=3.9.1,<4.0.0)",
+    "numpy (<2.0.0)",
+    "bertopic (>=0.16.4,<0.17.0)",
+    "kneed (>=0.8.5,<0.9.0)",
+    "pydantic (>=2.10.6,<3.0.0)",
+    "openai (>=1.63.2,<2.0.0)",
+    "sentencepiece (>=0.2.0,<0.3.0)",
+    "jupyter (>=1.1.1,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
