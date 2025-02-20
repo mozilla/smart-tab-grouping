@@ -46,6 +46,9 @@ Notes on Diagram: All inference is in browser using the Firefox AI runtime and o
    /analysis/Directed Training Clusters.ipynb
 ```
 
+•Fine tune and export ML model
+see [src/jobs/Readme.md](See Read Me for Tuning model)
+
 • Analyze Results
    /analysis/Rouge Scores.ipynb
 
