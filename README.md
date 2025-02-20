@@ -19,9 +19,18 @@ Notes on Diagram: All inference is in browser using the Firefox AI runtime and o
 
 ### Clustering tests
 
-'streamlit run tab_grouping_streamlit.py' for interactive tests
+For interactive tests
+```
+streamlit run tab_grouping_streamlit.py
 
-python utils/grouping_pipeline.py for batch testing of clustering methods
+```
+ 
+
+For batch testing of clustering methods:
+```
+python utils/grouping_pipeline.py
+
+```
 
  
 ### Topic Name Data Generation Pipeline
