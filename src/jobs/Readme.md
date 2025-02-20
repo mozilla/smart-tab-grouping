@@ -2,7 +2,15 @@
 
 A flow to fine tune a generic LLM to a generative Topic Model for tab group topics
 
-To run training jobs
+Metaflow or Outerbounds libraries need to be
+
+
+**To run training jobs**
+*local*
+Remove 'kubernetes' tag from TuneGenTopicModel.py
+python TuneGenTopicModel.py run
+
+*remote cluster*
 python TuneGenTopicModel.py argo-workflows create
 python TuneGenTopicModel.py argo-workflows trigger
 
