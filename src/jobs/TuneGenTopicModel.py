@@ -2,14 +2,15 @@ from metaflow import (
     FlowSpec,
     step,
     card,
-    current)
+    current, resources, kubernetes)
 from metaflow.cards import Table
 
 import pandas as pd
-from common.secrets import load_env
-from common.deploy import kresources
-from common.storage import download_bucket_to_file
+
+from src.util.secrets import load_env
+from src.util.storage import download_bucket_to_file
 from tune_code import GenTrainer
+
 
 def cleanup_wandb_args(config):
     def cleanup_bool(v):
@@ -21,8 +22,11 @@ def cleanup_wandb_args(config):
 
     return {key: cleanup_bool(value) for (key, value) in config.items()}
 
+
 TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
-TUNING_DATA_PATH = "topic/topic_fine_tuning_data_extractive_2_15.csv" # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
+TUNING_DATA_PATH = "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
+
+
 class TuneGenTopicModel(FlowSpec):
     """
     A flow to tune the Generative Topic Model based on flan-t5-small
@@ -38,52 +42,20 @@ class TuneGenTopicModel(FlowSpec):
                 "model_name": "google/flan-t5-small",
                 "label_column": "output",
                 "use_keywords": True,
-                "single_tab_handling": True
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False
-            },
-            {
-                "learning_rate": 2e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False
-            },
-            {
-                "learning_rate": 4e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False
-            },
-            {
-                "learning_rate": 4e-4,
-                "batch_size": 4,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
                 "single_tab_handling": False
             }
         ]
-        # self.configs = self.configs[:1]
         self.next(self.train, foreach='configs')
 
-    @kresources(
-        gpu="1",
+    @resources(
         memory=10240,
         disk=20240,
         cpu=2,
-        gpu_vendor="nvidia",
-        image="us-docker.pkg.dev/moz-fx-mozsoc-ml-nonprod/metaflow-dockers/metaflow_gpu:onnx2",
     )
+    @kubernetes(image="us-docker.pkg.dev/moz-fx-mozsoc-ml-nonprod/metaflow-dockers/metaflow_gpu:onnx2",
+                gpu_vendor="nvidia",
+                gpu=1
+                )
     @card
     @step
     def train(self):
