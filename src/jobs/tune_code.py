@@ -15,7 +15,7 @@ from transformers import (
     TrainingArguments, Trainer
 )
 
-from src.util.storage import upload_directory
+from util.storage import upload_directory
 from utils import get_bad_word_ids
 
 INPUT_PROMPT_ID = "input_with_prompt"

@@ -7,8 +7,8 @@ from metaflow.cards import Table
 
 import pandas as pd
 
-from src.util.secrets import load_env
-from src.util.storage import download_bucket_to_file
+from util.secrets import load_env
+from util.storage import download_bucket_to_file
 from tune_code import GenTrainer
 
 
