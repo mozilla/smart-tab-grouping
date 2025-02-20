@@ -16,6 +16,22 @@ Smart Tab grouping uses standard embedding models for grouping, and a fine tuned
 Notes on Diagram: All inference is in browser using the Firefox AI runtime and other local algorithms.
 
  ‘Distinct keywords’ are picked for inference using c-tf-idf algorithm, which finds relatively unique keywords in the title and description of the document with respect to the rest of the document.This helps distinguish what is unique about a group.
+
+### Clustering tests
+
+For interactive tests
+```
+streamlit run tab_grouping_streamlit.py
+
+```
+ 
+
+For batch testing of clustering methods:
+```
+python utils/grouping_pipeline.py
+
+```
+
  
 ### Topic Name Data Generation Pipeline
 
@@ -47,8 +63,8 @@ Notes on Diagram: All inference is in browser using the Firefox AI runtime and o
 ```
 
 •Fine tune and export ML model
-see [src/jobs/Readme.md](See Read Me for Tuning model)
+see src/jobs/Readme.md for details
 
-• Analyze Results
+• Analyze Results of Topic Model
    /analysis/Rouge Scores.ipynb
 
