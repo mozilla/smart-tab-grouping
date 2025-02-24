@@ -24,8 +24,8 @@ def cleanup_wandb_args(config):
 
 
 TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
-TUNING_DATA_PATH = "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
-
+TUNING_DATA_PATHS = ["topic/topic_fine_tuning_data__common_crawl_2025-02-23_08-18.csv",
+                     "topic/topic_fine_tuning_data__2025-02-21_16-50.csv"]# "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
 
 class TuneGenTopicModel(FlowSpec):
     """
@@ -43,8 +43,49 @@ class TuneGenTopicModel(FlowSpec):
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False
-            }
-        ]
+            },
+            {
+                "learning_rate": 2e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-tiny",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False
+            },
+            {
+                "learning_rate": 2e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-tiny",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False
+            }]
+        self.configs = [
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False
+            },
+            {
+                "learning_rate": 2e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False
+            }]
+
         self.next(self.train, foreach='configs')
 
     @resources(
@@ -67,9 +108,13 @@ class TuneGenTopicModel(FlowSpec):
         print(train_config)
         trainer = GenTrainer(**train_config)
         local_filename = "tuning_data.csv"
-        print(f"Using training file {TUNING_DATA_PATH}")
-        download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, TUNING_DATA_PATH, local_filename)
-        topic_data = pd.read_csv(local_filename).fillna("")
+        print(f"Using training files {TUNING_DATA_PATHS}")
+        datasets = []
+        for training_file in TUNING_DATA_PATHS:
+            download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
+            datasets.append(pd.read_csv(local_filename).fillna(""))
+        topic_data = pd.concat(datasets, ignore_index=True)
+
         current.card.append(
             Table.from_dataframe(
                 topic_data
