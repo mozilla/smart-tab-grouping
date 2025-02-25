@@ -24,8 +24,8 @@ def cleanup_wandb_args(config):
 
 
 TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
-TUNING_DATA_PATHS = ["topic/topic_fine_tuning_data__common_crawl_2025-02-23_08-18.csv",
-                     "topic/topic_fine_tuning_data__2025-02-21_16-50.csv"]# "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
+TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-23_08-18__filtered.csv",
+                     "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv"]# "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
 
 class TuneGenTopicModel(FlowSpec):
     """
@@ -37,20 +37,31 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
         self.configs = [
             {
-                "learning_rate": 3e-4,
+                "learning_rate": 8e-4,
                 "batch_size": 2,
-                "model_name": "google/flan-t5-small",
+                "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
-                "single_tab_handling": False
+                "single_tab_handling": False,
+                "learning_rate_decay": True
             },
             {
-                "learning_rate": 2e-4,
+                "learning_rate": 6e-4,
                 "batch_size": 2,
-                "model_name": "google/flan-t5-small",
+                "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
-                "single_tab_handling": False
+                "single_tab_handling": False,
+                "learning_rate_decay": True
+            },
+            {
+                "learning_rate": 4e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-tiny",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": True
             },
             {
                 "learning_rate": 3e-4,
@@ -58,33 +69,10 @@ class TuneGenTopicModel(FlowSpec):
                 "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
-                "single_tab_handling": False
-            },
-            {
-                "learning_rate": 2e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-tiny",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False
-            }]
-        self.configs = [
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False
-            },
-            {
-                "learning_rate": 2e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False
-            }]
+                "single_tab_handling": False,
+                "learning_rate_decay": True
+            }
+        ]
 
         self.next(self.train, foreach='configs')
 

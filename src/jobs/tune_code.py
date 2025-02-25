@@ -49,11 +49,13 @@ hybrid_prompt_gen = ConditionalPromptGenerator(prompt="", multi_doc_generator=ke
 class GenTrainer:
 
     def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
-                 label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False):
+                 label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
+                 learning_rate_decay: bool = True):
         self.model_name = model_name
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.label_column = label_column
+        self.learning_rate_decay = learning_rate_decay
         self.single_tab_handling =single_tab_handling
         self.use_keywords = use_keywords
         self.prompter = keyword_prompt if use_keywords else document_prompt
@@ -128,6 +130,7 @@ class GenTrainer:
                            "model_name": self.model_name,
                            "label_column": self.label_column,
                            "use_keywords": self.use_keywords,
+                           "learning_rate_decay": self.learning_rate_decay,
                            "single_tab_handling": self.single_tab_handling,
                            "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename})
         print(f"W&B Run ID: {wandb.run.id}")
@@ -136,17 +139,32 @@ class GenTrainer:
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
-        training_args = TrainingArguments(
-            output_dir="./results",
-            evaluation_strategy="epoch",
-            learning_rate=self.learning_rate,
-            per_device_train_batch_size=self.batch_size,
-            per_device_eval_batch_size=1,
-            num_train_epochs=3,
-            weight_decay=0.01,
-            save_total_limit=1,
-            save_strategy="epoch",
-        )
+        if self.learning_rate_decay:
+            training_args = TrainingArguments(
+                output_dir="./results",
+                evaluation_strategy="epoch",
+                learning_rate=self.learning_rate,
+                per_device_train_batch_size=self.batch_size,
+                per_device_eval_batch_size=1,
+                num_train_epochs=3,
+                weight_decay=0.01,
+                save_total_limit=1,
+                save_strategy="epoch",
+                lr_scheduler_type="cosine",
+                warmup_ratio=0.1
+            )
+        else:
+            training_args = TrainingArguments(
+                output_dir="./results",
+                evaluation_strategy="epoch",
+                learning_rate=self.learning_rate,
+                per_device_train_batch_size=self.batch_size,
+                per_device_eval_batch_size=1,
+                num_train_epochs=3,
+                weight_decay=0.01,
+                save_total_limit=1,
+                save_strategy="epoch",
+            )
 
         trainer = Trainer(
             model=self.model,
