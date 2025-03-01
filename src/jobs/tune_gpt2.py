@@ -1,114 +1,50 @@
 import os
 from datetime import datetime
-
 import pandas as pd
-from pydantic import BaseModel
-
 import wandb
+
+from tune_base import TuneTopicBase, INPUT_PROMPT_ID, keyword_prompt
 import torch
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
 
-from transformers import (
-    T5ForConditionalGeneration,
-    T5Tokenizer,
-    TrainingArguments, Trainer
-)
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments
 
 from util.storage import upload_directory
 from utils import get_bad_word_ids
 
-INPUT_PROMPT_ID = "input_with_prompt"
-
-
-class PromptGenerator(BaseModel):
-    document_key: str = "[DOCUMENTS]"
-    keyword_key: str = "[KEYWORDS]"
-    prompt: str
-
-    def generate_prompt(self, documents, keywords):
-        res = self.prompt.replace(self.keyword_key, keywords)
-        res = res.replace(self.document_key, documents)
-        return res
-
-class ConditionalPromptGenerator(PromptGenerator):
-    multi_doc_generator: PromptGenerator
-    single_doc_generator: PromptGenerator
-    def generate_prompt(self, documents, keywords):
-        if len(keywords) > 0:
-            return self.multi_doc_generator.generate_prompt(documents, keywords)
-        else:
-            return self.single_doc_generator.generate_prompt(documents, keywords)
-
-document_prompt = PromptGenerator(prompt="Generate a topic from these web titles: \n [DOCUMENTS]")
-keyword_prompt = PromptGenerator(prompt="Topic from keywords: [KEYWORDS]. titles: \n[DOCUMENTS]")
-keyword_prompt_one_tab = PromptGenerator(prompt="Topic from title: \n[DOCUMENTS]")
-hybrid_prompt_gen = ConditionalPromptGenerator(prompt="", multi_doc_generator=keyword_prompt,
-                                               single_doc_generator=keyword_prompt_one_tab)
-
-class GenTrainer:
-
+class TuneTopicGPT2(TuneTopicBase):
     def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
                  learning_rate_decay: bool = True):
-        self.model_name = model_name
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
-        self.label_column = label_column
-        self.learning_rate_decay = learning_rate_decay
-        self.single_tab_handling = single_tab_handling
-        self.use_keywords = use_keywords
-        self.prompter = keyword_prompt if use_keywords else document_prompt
-        if self.single_tab_handling:
-            self.prompter = hybrid_prompt_gen
-        self.model = None
-
-    def compute_metrics(self, eval_pred):
-        from rouge_score import rouge_scorer, scoring
-        predictions, labels = eval_pred
-        decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
-        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
-        decoded_labels = [label.split(self.tokenizer.eos_token, 1)[0] for label in decoded_labels]
-        scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-        aggregator = scoring.BootstrapAggregator()
-
-        for pred, label in zip(decoded_preds, decoded_labels):
-            print(f"Pred:{pred} Label:{label}")
-            scores = scorer.score(target=label, prediction=pred)
-            aggregator.add_scores(scores)
-        result = aggregator.aggregate()
-        final_result = {key: value.mid.fmeasure for key, value in result.items()}
-        wandb.log(final_result)
-        return final_result
-
-    def compute_metrics_text(self, decoded_preds, decoded_labels):
-        from rouge_score import rouge_scorer, scoring
-        scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-        aggregator = scoring.BootstrapAggregator()
-        for pred, label in zip(decoded_preds, decoded_labels):
-            scores = scorer.score(target=label, prediction=pred)
-            print(f"comparing {pred} with label {label}")
-            aggregator.add_scores(scores)
-        result = aggregator.aggregate()
-        final_result = {key: value.mid.fmeasure for key, value in result.items()}
-        wandb.log(final_result)
-        return final_result
+        super().__init__(learning_rate, batch_size, model_name, label_column, use_keywords, single_tab_handling,
+                         learning_rate_decay)
+        self.tokenizer = None
 
     def preprocess_function(self, examples):
         inputs = examples["input_text"]
         targets = examples["target_text"]
-        model_inputs = self.tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
-        with self.tokenizer.as_target_tokenizer():
-            labels = self.tokenizer(targets, max_length=512, truncation=True, padding="max_length")
-        model_inputs["labels"] = labels["input_ids"]
+        # Concatenate input and target with a separator (e.g., "<|endoftext|>")
+        combined_texts = [f"{inp} {self.tokenizer.eos_token} {tgt}" for inp, tgt in zip(inputs, targets)]
+        model_inputs = self.tokenizer(combined_texts,
+                                      max_length=512,
+                                      truncation=True,
+                                      padding="max_length",
+                                      return_attention_mask=True)
+        model_inputs["labels"] = model_inputs["input_ids"]
         return model_inputs
 
     def setup_data(self, topic_data: pd.DataFrame, filename: str = "unknown"):
         self.filename = filename
-        self.tokenizer = T5Tokenizer.from_pretrained(self.model_name)
-        self.model = T5ForConditionalGeneration.from_pretrained(self.model_name)
+
+        self.tokenizer = GPT2Tokenizer.from_pretrained(self.model_name)
+        self.model = GPT2LMHeadModel.from_pretrained(self.model_name)
+
+        # Ensure the tokenizer has a padding token (GPT-2 does not have one by default)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
         topic_data.input_keywords = topic_data.input_keywords.fillna("")
         topic_data[INPUT_PROMPT_ID] = topic_data.apply(lambda row: self.prompter.generate_prompt(row.input_titles, row.input_keywords), axis=1)
+
         topic_data_training, topic_data_eval = train_test_split(topic_data, test_size=0.2)
         train_data_dict = {"input_text": topic_data_training[INPUT_PROMPT_ID].to_list(),
                            "target_text": topic_data_training[self.label_column].to_list()}
@@ -170,7 +106,8 @@ class GenTrainer:
             model=self.model,
             args=training_args,
             train_dataset=tokenized_training_dataset,
-            eval_dataset=tokenized_training_dataset
+            eval_dataset=tokenized_training_dataset,
+            tokenizer=self.tokenizer
         )
 
         trainer.train()
@@ -178,26 +115,29 @@ class GenTrainer:
         results_output = []
 
         for item in tokenized_eval_dataset:
-            input_ids = self.tokenizer(item["input_text"], return_tensors="pt").input_ids.to("cuda:0")
+            input_ids = self.tokenizer(item["input_text"], return_tensors="pt", max_length=512, return_attention_mask=True).input_ids.to("cuda:0")
             label = item['target_text']
-            outputs = self.model.generate(input_ids, max_length=30, num_return_sequences=1)
+            outputs = self.model.generate(input_ids, max_new_tokens=30, num_return_sequences=1)
+            # Remove the input prompt to get only the generated text
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            prompt_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
+            response = response[len(prompt_text):].strip()
             results_output.append(response)
+            print(response)
             results_labels.append(label)
         self.compute_metrics_text(results_output, results_labels)
-        validation_table = wandb.Table(columns=["input", "label", "prediction"], data=
-                            [list(map(lambda a: a["input_text"], tokenized_eval_dataset)),
-                            results_labels,
-                            results_output])
-        wandb.log({"Validation Data": validation_table})
-
+#        validation_table = wandb.Table(columns=["input", "label", "prediction"], data=
+#                            [list(map(lambda a: a["input_text"], tokenized_eval_dataset)),
+#                            results_labels,
+#                            results_output])
+#        wandb.log({"Validation Data": validation_table})
         self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
-        self.model.save_pretrained("./t5-finetuned-topic")
-        self.tokenizer.save_pretrained("./t5-finetuned-topic")
+        self.model.save_pretrained("./gpt2-finetuned-topic")
+        self.tokenizer.save_pretrained("./gpt2-finetuned-topic")
 
         current_date = datetime.now()
         date_string = current_date.isoformat().replace(":", "_")
-        upload_directory("./t5-finetuned-topic", "stage-fx-tab-grouping", f"topic/models/{date_string}/", depth=1)
+        upload_directory("./gpt2-finetuned-topic", "stage-fx-tab-grouping", f"topic/models/{date_string}/", depth=1)
 
         wandb.finish()
         self.model = None

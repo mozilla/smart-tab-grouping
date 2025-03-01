@@ -7,9 +7,11 @@ from metaflow.cards import Table
 
 import pandas as pd
 
+from tune_t5 import TuneTopicT5
+from tune_gpt2 import TuneTopicGPT2
+
 from util.secrets import load_env
 from util.storage import download_bucket_to_file
-from tune_code import GenTrainer
 
 
 def cleanup_wandb_args(config):
@@ -27,6 +29,13 @@ TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
 TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-23_08-18__filtered.csv",
                      "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv"]# "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
 
+def create_trainer_for_config(config:dict[str, any]):
+    if "t5" in config["model_name"]:
+        return TuneTopicT5(**config)
+    if "gpt" in config["model_name"]:
+        return TuneTopicGPT2(**config)
+    return None
+
 class TuneGenTopicModel(FlowSpec):
     """
     A flow to tune the Generative Topic Model based on flan-t5-small
@@ -35,11 +44,39 @@ class TuneGenTopicModel(FlowSpec):
 
     @step
     def start(self):
+
         self.configs = [
             {
-                "learning_rate": 3e-4,
+                "learning_rate": 1e-5,
                 "batch_size": 2,
-                "model_name": "google/flan-t5-base",
+                "model_name": "distilbert/distilgpt2",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 3e-5,
+                "batch_size": 2,
+                "model_name": "distilbert/distilgpt2",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 1e-4,
+                "batch_size": 2,
+                "model_name": "distilbert/distilgpt2",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 1e-4,
+                "batch_size": 4,
+                "model_name": "distilbert/distilgpt2",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
@@ -67,7 +104,7 @@ class TuneGenTopicModel(FlowSpec):
         load_env()
         print("Training Config: ")
         print(train_config)
-        trainer = GenTrainer(**train_config)
+        trainer = create_trainer_for_config(train_config)
         local_filename = "tuning_data.csv"
         print(f"Using training files {TUNING_DATA_PATHS}")
         datasets = []
