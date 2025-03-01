@@ -37,40 +37,13 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
         self.configs = [
             {
-                "learning_rate": 8e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-tiny",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": True
-            },
-            {
-                "learning_rate": 6e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-tiny",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": True
-            },
-            {
-                "learning_rate": 4e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-tiny",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": True
-            },
-            {
                 "learning_rate": 3e-4,
                 "batch_size": 2,
-                "model_name": "google/t5-efficient-tiny",
+                "model_name": "google/flan-t5-base",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
-                "learning_rate_decay": True
+                "learning_rate_decay": False
             }
         ]
 

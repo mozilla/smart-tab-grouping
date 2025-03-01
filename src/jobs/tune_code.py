@@ -56,7 +56,7 @@ class GenTrainer:
         self.batch_size = batch_size
         self.label_column = label_column
         self.learning_rate_decay = learning_rate_decay
-        self.single_tab_handling =single_tab_handling
+        self.single_tab_handling = single_tab_handling
         self.use_keywords = use_keywords
         self.prompter = keyword_prompt if use_keywords else document_prompt
         if self.single_tab_handling:
@@ -185,6 +185,11 @@ class GenTrainer:
             results_output.append(response)
             results_labels.append(label)
         self.compute_metrics_text(results_output, results_labels)
+        validation_table = wandb.Table(columns=["input", "label", "prediction"], data=
+                            [list(map(lambda a: a["input_text"], tokenized_eval_dataset)),
+                            results_labels,
+                            results_output])
+        wandb.log({"Validation Data": validation_table})
 
         self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
         self.model.save_pretrained("./t5-finetuned-topic")
