@@ -51,7 +51,6 @@ class TuneTopicBart(TuneTopicBase):
 
         topic_data_training, topic_data_eval = train_test_split(topic_data, test_size=0.2)
 
-        # Prepare data dictionaries
         train_data_dict = {
             "input_text": topic_data_training[INPUT_PROMPT_ID].tolist(),
             "target_text": topic_data_training[self.label_column].tolist()
@@ -68,9 +67,6 @@ class TuneTopicBart(TuneTopicBase):
         print(f"Eval Dataset size {len(self.eval_dataset)}")
 
     def train(self):
-        """
-        Fine-tune the model using the HF Trainer API, log with W&B, and upload artifacts.
-        """
         torch.cuda.empty_cache()
 
         # Ensure W&B logs the model at the end of training
@@ -94,11 +90,9 @@ class TuneTopicBart(TuneTopicBase):
         print(f"W&B Run ID: {wandb.run.id}")
         print(f"W&B Run Name: {wandb.run.name}")
 
-        # Tokenize datasets
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
-        # Set training arguments
         if self.learning_rate_decay:
             training_args = TrainingArguments(
                 output_dir="./results",
@@ -126,7 +120,6 @@ class TuneTopicBart(TuneTopicBase):
                 save_strategy="epoch",
             )
 
-        # Create Trainer
         trainer = Trainer(
             model=self.model,
             args=training_args,
@@ -134,14 +127,12 @@ class TuneTopicBart(TuneTopicBase):
             eval_dataset=tokenized_eval_dataset
         )
 
-        # Train
         trainer.train()
 
         # Generate predictions on the evaluation set
         results_labels = []
         results_output = []
         for item in tokenized_eval_dataset:
-            # Prepare input tensors
             input_ids = self.tokenizer(
                 item["input_text"],
                 return_tensors="pt"
@@ -149,18 +140,15 @@ class TuneTopicBart(TuneTopicBase):
 
             label = item["target_text"]
 
-            # Generate with BART
             outputs = self.model.generate(
                 input_ids,
                 max_length=30,
                 num_return_sequences=1
             )
-            # Decode
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             results_output.append(response)
             results_labels.append(label)
 
-        # Compute metrics (custom method from your base class)
         self.compute_metrics_text(results_output, results_labels)
 
         # Log sample predictions in a W&B Table
@@ -176,16 +164,12 @@ class TuneTopicBart(TuneTopicBase):
         )
         wandb.log({"Validation Data": validation_table})
 
-        # Optionally, update generation_config for BART
-        # e.g., if you need to exclude certain words:
         self.model.config.bad_words_ids = get_bad_word_ids()
 
-        # Save final model locally
         output_dir = "./bart-finetuned-topic"
         self.model.save_pretrained(output_dir)
         self.tokenizer.save_pretrained(output_dir)
 
-        # Upload directory to storage
         current_date = datetime.now()
         date_string = current_date.isoformat().replace(":", "_")
         upload_directory(
@@ -195,9 +179,7 @@ class TuneTopicBart(TuneTopicBase):
             depth=1
         )
 
-        # Finish W&B
         wandb.finish()
 
-        # Free up memory
         self.model = None
         torch.cuda.empty_cache()
