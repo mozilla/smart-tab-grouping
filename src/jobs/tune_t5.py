@@ -1,10 +1,9 @@
 import os
 from datetime import datetime
-
 import pandas as pd
-from pydantic import BaseModel
-
 import wandb
+
+from tune_base import TuneTopicBase, INPUT_PROMPT_ID, keyword_prompt
 import torch
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
@@ -18,80 +17,7 @@ from transformers import (
 from util.storage import upload_directory
 from utils import get_bad_word_ids
 
-INPUT_PROMPT_ID = "input_with_prompt"
-
-
-class PromptGenerator(BaseModel):
-    document_key: str = "[DOCUMENTS]"
-    keyword_key: str = "[KEYWORDS]"
-    prompt: str
-
-    def generate_prompt(self, documents, keywords):
-        res = self.prompt.replace(self.keyword_key, keywords)
-        res = res.replace(self.document_key, documents)
-        return res
-
-class ConditionalPromptGenerator(PromptGenerator):
-    multi_doc_generator: PromptGenerator
-    single_doc_generator: PromptGenerator
-    def generate_prompt(self, documents, keywords):
-        if len(keywords) > 0:
-            return self.multi_doc_generator.generate_prompt(documents, keywords)
-        else:
-            return self.single_doc_generator.generate_prompt(documents, keywords)
-
-document_prompt = PromptGenerator(prompt="Generate a topic from these web titles: \n [DOCUMENTS]")
-keyword_prompt = PromptGenerator(prompt="Topic from keywords: [KEYWORDS]. titles: \n[DOCUMENTS]")
-keyword_prompt_one_tab = PromptGenerator(prompt="Topic from title: \n[DOCUMENTS]")
-hybrid_prompt_gen = ConditionalPromptGenerator(prompt="", multi_doc_generator=keyword_prompt,
-                                               single_doc_generator=keyword_prompt_one_tab)
-
-class GenTrainer:
-
-    def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
-                 label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False):
-        self.model_name = model_name
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
-        self.label_column = label_column
-        self.single_tab_handling =single_tab_handling
-        self.use_keywords = use_keywords
-        self.prompter = keyword_prompt if use_keywords else document_prompt
-        if self.single_tab_handling:
-            self.prompter = hybrid_prompt_gen
-        self.model = None
-
-    def compute_metrics(self, eval_pred):
-        from rouge_score import rouge_scorer, scoring
-        predictions, labels = eval_pred
-        decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
-        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
-        decoded_labels = [label.split(self.tokenizer.eos_token, 1)[0] for label in decoded_labels]
-        scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-        aggregator = scoring.BootstrapAggregator()
-
-        for pred, label in zip(decoded_preds, decoded_labels):
-            print(f"Pred:{pred} Label:{label}")
-            scores = scorer.score(target=label, prediction=pred)
-            aggregator.add_scores(scores)
-        result = aggregator.aggregate()
-        final_result = {key: value.mid.fmeasure for key, value in result.items()}
-        wandb.log(final_result)
-        return final_result
-
-    def compute_metrics_text(self, decoded_preds, decoded_labels):
-        from rouge_score import rouge_scorer, scoring
-        scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-        aggregator = scoring.BootstrapAggregator()
-        for pred, label in zip(decoded_preds, decoded_labels):
-            scores = scorer.score(target=label, prediction=pred)
-            print(f"comparing {pred} with label {label}")
-            aggregator.add_scores(scores)
-        result = aggregator.aggregate()
-        final_result = {key: value.mid.fmeasure for key, value in result.items()}
-        wandb.log(final_result)
-        return final_result
-
+class TuneTopicT5(TuneTopicBase):
     def preprocess_function(self, examples):
         inputs = examples["input_text"]
         targets = examples["target_text"]
@@ -128,6 +54,7 @@ class GenTrainer:
                            "model_name": self.model_name,
                            "label_column": self.label_column,
                            "use_keywords": self.use_keywords,
+                           "learning_rate_decay": self.learning_rate_decay,
                            "single_tab_handling": self.single_tab_handling,
                            "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename})
         print(f"W&B Run ID: {wandb.run.id}")
@@ -136,17 +63,32 @@ class GenTrainer:
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
-        training_args = TrainingArguments(
-            output_dir="./results",
-            evaluation_strategy="epoch",
-            learning_rate=self.learning_rate,
-            per_device_train_batch_size=self.batch_size,
-            per_device_eval_batch_size=1,
-            num_train_epochs=3,
-            weight_decay=0.01,
-            save_total_limit=1,
-            save_strategy="epoch",
-        )
+        if self.learning_rate_decay:
+            training_args = TrainingArguments(
+                output_dir="./results",
+                evaluation_strategy="epoch",
+                learning_rate=self.learning_rate,
+                per_device_train_batch_size=self.batch_size,
+                per_device_eval_batch_size=1,
+                num_train_epochs=3,
+                weight_decay=0.01,
+                save_total_limit=1,
+                save_strategy="epoch",
+                lr_scheduler_type="cosine",
+                warmup_ratio=0.1
+            )
+        else:
+            training_args = TrainingArguments(
+                output_dir="./results",
+                evaluation_strategy="epoch",
+                learning_rate=self.learning_rate,
+                per_device_train_batch_size=self.batch_size,
+                per_device_eval_batch_size=1,
+                num_train_epochs=3,
+                weight_decay=0.01,
+                save_total_limit=1,
+                save_strategy="epoch",
+            )
 
         trainer = Trainer(
             model=self.model,
@@ -167,6 +109,17 @@ class GenTrainer:
             results_output.append(response)
             results_labels.append(label)
         self.compute_metrics_text(results_output, results_labels)
+        validation_table = wandb.Table(
+            columns=["input", "label", "prediction"],
+            data=list(
+                zip(
+                    [d["input_text"] for d in tokenized_eval_dataset],
+                    results_labels,
+                    results_output
+                )
+            ),
+        )
+        wandb.log({"Validation Set": validation_table})
 
         self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
         self.model.save_pretrained("./t5-finetuned-topic")
