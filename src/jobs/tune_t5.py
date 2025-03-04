@@ -109,11 +109,17 @@ class TuneTopicT5(TuneTopicBase):
             results_output.append(response)
             results_labels.append(label)
         self.compute_metrics_text(results_output, results_labels)
-        validation_table = wandb.Table(columns=["input", "label", "prediction"], data=
-                            [list(map(lambda a: a["input_text"], tokenized_eval_dataset)),
-                            results_labels,
-                            results_output])
-        wandb.log({"Validation Data": validation_table})
+        validation_table = wandb.Table(
+            columns=["input", "label", "prediction"],
+            data=list(
+                zip(
+                    [d["input_text"] for d in tokenized_eval_dataset],
+                    results_labels,
+                    results_output
+                )
+            ),
+        )
+        wandb.log({"Validation Set": validation_table})
 
         self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
         self.model.save_pretrained("./t5-finetuned-topic")

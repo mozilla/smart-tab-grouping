@@ -14,18 +14,21 @@ from util.storage import upload_directory
 from utils import get_bad_word_ids
 
 class TuneTopicGPT2(TuneTopicBase):
-    def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
+    def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = None,
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
                  learning_rate_decay: bool = True):
         super().__init__(learning_rate, batch_size, model_name, label_column, use_keywords, single_tab_handling,
                          learning_rate_decay)
+        self.break_string = None
         self.tokenizer = None
 
     def preprocess_function(self, examples):
         inputs = examples["input_text"]
         targets = examples["target_text"]
+        if self.break_string is None:
+            self.break_string = self.tokenizer.eos_token
         # Concatenate input and target with a separator (e.g., "<|endoftext|>")
-        combined_texts = [f"{inp} {self.tokenizer.eos_token} {tgt}" for inp, tgt in zip(inputs, targets)]
+        combined_texts = [f"{inp} {self.break_string} {tgt}" for inp, tgt in zip(inputs, targets)]
         model_inputs = self.tokenizer(combined_texts,
                                       max_length=512,
                                       truncation=True,
@@ -115,7 +118,7 @@ class TuneTopicGPT2(TuneTopicBase):
         results_output = []
 
         for item in tokenized_eval_dataset:
-            input_ids = self.tokenizer(item["input_text"], return_tensors="pt", max_length=512, return_attention_mask=True).input_ids.to("cuda:0")
+            input_ids = self.tokenizer(f"{item['input_text']} {self.break_string}", return_tensors="pt", max_length=512, return_attention_mask=True).input_ids.to("cuda:0")
             label = item['target_text']
             outputs = self.model.generate(input_ids, max_new_tokens=30, num_return_sequences=1)
             # Remove the input prompt to get only the generated text
@@ -123,14 +126,19 @@ class TuneTopicGPT2(TuneTopicBase):
             prompt_text = self.tokenizer.decode(input_ids[0], skip_special_tokens=True)
             response = response[len(prompt_text):].strip()
             results_output.append(response)
-            print(response)
             results_labels.append(label)
         self.compute_metrics_text(results_output, results_labels)
-#        validation_table = wandb.Table(columns=["input", "label", "prediction"], data=
-#                            [list(map(lambda a: a["input_text"], tokenized_eval_dataset)),
-#                            results_labels,
-#                            results_output])
-#        wandb.log({"Validation Data": validation_table})
+        validation_table = wandb.Table(
+            columns=["input", "label", "prediction"],
+            data=list(
+                zip(
+                    [d["input_text"] for d in tokenized_eval_dataset],
+                    results_labels,
+                    results_output
+                )
+            ),
+        )
+        wandb.log({"Validation Set": validation_table})
         self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
         self.model.save_pretrained("./gpt2-finetuned-topic")
         self.tokenizer.save_pretrained("./gpt2-finetuned-topic")

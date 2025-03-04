@@ -7,6 +7,7 @@ from metaflow.cards import Table
 
 import pandas as pd
 
+from tune_bart import TuneTopicBart
 from tune_t5 import TuneTopicT5
 from tune_gpt2 import TuneTopicGPT2
 
@@ -34,6 +35,8 @@ def create_trainer_for_config(config:dict[str, any]):
         return TuneTopicT5(**config)
     if "gpt" in config["model_name"]:
         return TuneTopicGPT2(**config)
+    if "bart" in config["model_name"]:
+        return TuneTopicBart(**config)
     return None
 
 class TuneGenTopicModel(FlowSpec):
@@ -46,6 +49,33 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
 
         self.configs = [
+            {
+                "learning_rate": 3e-5,
+                "batch_size": 1,
+                "model_name": "google/flan-t5-base",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 3e-5,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 3e-5,
+                "batch_size": 8,
+                "model_name": "sshleifer/distilbart-xsum-6-6",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
             {
                 "learning_rate": 1e-5,
                 "batch_size": 2,
@@ -65,9 +95,9 @@ class TuneGenTopicModel(FlowSpec):
                 "learning_rate_decay": False
             },
             {
-                "learning_rate": 1e-4,
+                "learning_rate": 3e-4,
                 "batch_size": 2,
-                "model_name": "distilbert/distilgpt2",
+                "model_name": "google/t5-efficient-mini",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
@@ -75,15 +105,33 @@ class TuneGenTopicModel(FlowSpec):
             },
             {
                 "learning_rate": 1e-4,
-                "batch_size": 4,
-                "model_name": "distilbert/distilgpt2",
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 5e-5,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False
             }
         ]
-
+        self.configs = self.configs[:2]
         self.next(self.train, foreach='configs')
 
     @resources(
@@ -100,6 +148,7 @@ class TuneGenTopicModel(FlowSpec):
     def train(self):
         """Extract feedback from prospecting given by curators"""
         train_config = self.input
+        LABEL_MAX_LENGTH = 35
 
         load_env()
         print("Training Config: ")
@@ -112,6 +161,8 @@ class TuneGenTopicModel(FlowSpec):
             download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
             datasets.append(pd.read_csv(local_filename).fillna(""))
         topic_data = pd.concat(datasets, ignore_index=True)
+        topic_data = topic_data.drop_duplicates(subset=["input_titles"])
+        topic_data = topic_data[topic_data["output"].str.len() <= LABEL_MAX_LENGTH]
 
         current.card.append(
             Table.from_dataframe(
