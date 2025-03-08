@@ -103,13 +103,13 @@ class T5TopicGenerator(TopicGenerator):
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
 
-    def generate_response(self, prompt, max_tokens=14):
+    def generate_response(self, prompt, max_tokens=34):
         input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
         outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1)
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
 
-    def generate_token_response(self, prompt, max_tokens=14):
+    def generate_token_response(self, prompt, max_tokens=34):
         input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
         outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1,
                                       return_dict_in_generate=True, output_scores=True)

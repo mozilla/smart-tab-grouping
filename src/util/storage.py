@@ -1,12 +1,23 @@
 import glob
 import os
 from google.cloud import storage
+import pandas as pd
+
 
 def download_bucket_to_file(bucket_name, blob_path, destination_file_name):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
+    print("****")
+    print(blob_path)
     blob = bucket.blob(blob_path)
     blob.download_to_filename(destination_file_name)
+
+
+def download_bucket_to_csv(bucket_name, blob_path):
+    dest = "temp_path.csv"
+    download_bucket_to_file(bucket_name, blob_path, dest)
+    return pd.read_csv(dest)
+
 
 def upload_directory(dir_path: str, bucket_name: str, destination_path: str, depth=0):
     print(f"Searching {dir_path}")
@@ -21,6 +32,6 @@ def upload_directory(dir_path: str, bucket_name: str, destination_path: str, dep
             blob.upload_from_filename(local_file)
         else:
             if depth > 0:
-                upload_directory(f"{dir_path}/{base_name}", bucket_name, f"{destination_path}/{base_name}", depth-1)
+                upload_directory(f"{dir_path}/{base_name}", bucket_name, f"{destination_path}/{base_name}", depth - 1)
             else:
                 print(f"Not uploading deeper folder {local_file}")

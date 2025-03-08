@@ -12,7 +12,7 @@ from tune_t5 import TuneTopicT5
 from tune_gpt2 import TuneTopicGPT2
 
 from util.secrets import load_env
-from util.storage import download_bucket_to_file
+from util.storage import download_bucket_to_file, download_bucket_to_csv
 
 
 def cleanup_wandb_args(config):
@@ -29,6 +29,8 @@ def cleanup_wandb_args(config):
 TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
 TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-23_08-18__filtered.csv",
                      "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv"]# "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
+
+SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
 
 def create_trainer_for_config(config:dict[str, any]):
     if "t5" in config["model_name"]:
@@ -51,12 +53,14 @@ class TuneGenTopicModel(FlowSpec):
         self.configs = [
             {
                 "learning_rate": 3e-5,
-                "batch_size": 1,
-                "model_name": "google/flan-t5-base",
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
-                "learning_rate_decay": False
+                "learning_rate_decay": False,
+                "shrink_remove_encoder_layers": 0,  # 6/6
+                "shrink_decoder_index_remove": "0,1,2",  # 4/4
             },
             {
                 "learning_rate": 3e-5,
@@ -65,34 +69,20 @@ class TuneGenTopicModel(FlowSpec):
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
-                "learning_rate_decay": False
-            },
-            {
-                "learning_rate": 3e-5,
-                "batch_size": 8,
-                "model_name": "sshleifer/distilbart-xsum-6-6",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False
-            },
-            {
-                "learning_rate": 1e-5,
-                "batch_size": 2,
-                "model_name": "distilbert/distilgpt2",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False
+                "learning_rate_decay": False,
+                "shrink_remove_encoder_layers": 3,  # 6/6
+                "shrink_remove_decoder_layers": 4,  # 6/6
             },
             {
                 "learning_rate": 3e-5,
                 "batch_size": 2,
-                "model_name": "distilbert/distilgpt2",
+                "model_name": "google/flan-t5-small",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
-                "learning_rate_decay": False
+                "learning_rate_decay": False,
+                "shrink_remove_encoder_layers": 2,  # 6/6
+                "shrink_remove_decoder_layers": 4,  # 6/6
             },
             {
                 "learning_rate": 3e-4,
@@ -101,16 +91,9 @@ class TuneGenTopicModel(FlowSpec):
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
-                "learning_rate_decay": False
-            },
-            {
-                "learning_rate": 1e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False
+                "learning_rate_decay": False,
+                "shrink_remove_encoder_layers": 0,  # 4/4
+                "shrink_remove_decoder_layers": 2,  # 4/4
             },
             {
                 "learning_rate": 3e-4,
@@ -119,16 +102,9 @@ class TuneGenTopicModel(FlowSpec):
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
-                "learning_rate_decay": False
-            },
-            {
-                "learning_rate": 5e-5,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False
+                "learning_rate_decay": False,
+                "shrink_remove_encoder_layers": 0,  # 4/4
+                "shrink_remove_decoder_layers": 1,  # 4/4
             }
         ]
         self.configs = self.configs[:2]
@@ -169,7 +145,8 @@ class TuneGenTopicModel(FlowSpec):
                 topic_data
             )
         )
-        trainer.setup_data(topic_data)
+        validation_data = download_bucket_to_csv(TAB_GROUPING_BUCKET_NAME, SINGLE_TAB_VALIDATION_PATH)
+        trainer.setup_data(topic_data, validation_data)
         trainer.train()
         self.next(self.join)
 

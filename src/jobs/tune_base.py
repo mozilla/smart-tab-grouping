@@ -1,7 +1,10 @@
-import os
+import pandas as pd
 from pydantic import BaseModel
 
 import wandb
+
+from util.evaluate import NLPEvaluator
+
 INPUT_PROMPT_ID = "input_with_prompt"
 class PromptGenerator(BaseModel):
     document_key: str = "[DOCUMENTS]"
@@ -32,7 +35,7 @@ class TuneTopicBase:
 
     def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
-                 learning_rate_decay: bool = True):
+                 learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0):
         self.model_name = model_name
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -44,6 +47,10 @@ class TuneTopicBase:
         if self.single_tab_handling:
             self.prompter = hybrid_prompt_gen
         self.model = None
+        self.shrink_remove_encoder_layers = shrink_remove_encoder_layers
+        self.shrink_remove_decoder_layers = shrink_remove_decoder_layers
+        self.device = "cuda:0"
+
 
     def compute_metrics(self, eval_pred):
         from rouge_score import rouge_scorer, scoring
@@ -63,19 +70,23 @@ class TuneTopicBase:
         wandb.log(final_result)
         return final_result
 
-    def compute_metrics_text(self, decoded_preds, decoded_labels):
-        from rouge_score import rouge_scorer, scoring
-        scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-        aggregator = scoring.BootstrapAggregator()
-        for pred, label in zip(decoded_preds, decoded_labels):
-            scores = scorer.score(target=label, prediction=pred)
-            print(f"comparing {pred} with label {label}")
-            aggregator.add_scores(scores)
-        result = aggregator.aggregate()
-        final_result = {key: value.mid.fmeasure for key, value in result.items()}
-        wandb.log(final_result)
-        return final_result
-
+    def compute_metrics_text(self, decoded_preds, decoded_labels, prefix=None):
+        """
+        Computes aggregate comparison metrics (Rouge-XX, Cosine similarity) for predicted and label strings
+        Logs the result
+        Args:
+            decoded_preds: List of predictions
+            decoded_labels: List of items
+            prefix: Prefix for W&B logging
+        Returns: Dict of stats
+        """
+        eval = NLPEvaluator()
+        df = pd.DataFrame({"label": decoded_preds, "compare": decoded_labels})
+        result = eval.get_avg_scores(df, label_key="label", compare_column="compare")
+        if prefix is not None:
+            result = {f"{prefix}_{key}": value for key, value in result.items()}
+        wandb.log(result)
+        return result
 
 if __name__ == '__main__':
     print(keyword_prompt.generate_prompt("Doc 1\nDoc 2\n", "key1, key2"))
