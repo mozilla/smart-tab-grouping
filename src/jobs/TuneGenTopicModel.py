@@ -52,62 +52,71 @@ class TuneGenTopicModel(FlowSpec):
 
         self.configs = [
             {
-                "learning_rate": 3e-5,
+                "learning_rate": 3e-4,
                 "batch_size": 2,
                 "model_name": "google/flan-t5-small",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shrink_remove_encoder_layers": 0,  # 6/6
-                "shrink_decoder_index_remove": "0,1,2",  # 4/4
-            },
-            {
-                "learning_rate": 3e-5,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_remove_encoder_layers": 3,  # 6/6
-                "shrink_remove_decoder_layers": 4,  # 6/6
-            },
-            {
-                "learning_rate": 3e-5,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_remove_encoder_layers": 2,  # 6/6
-                "shrink_remove_decoder_layers": 4,  # 6/6
+                "shrink_decoder_index_remove": "6,5,4,3,2,0", # elated-lake
             },
             {
                 "learning_rate": 3e-4,
                 "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
+                "model_name": "google/flan-t5-small",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shrink_remove_encoder_layers": 0,  # 4/4
-                "shrink_remove_decoder_layers": 2,  # 4/4
+                "shrink_decoder_index_remove": "6,5,4,3,2,1", # new-test
             },
             {
                 "learning_rate": 3e-4,
                 "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
+                "model_name": "google/flan-t5-small",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shrink_remove_encoder_layers": 0,  # 4/4
-                "shrink_remove_decoder_layers": 1,  # 4/4
-            }
+                "shrink_encoder_index_remove": "1,3",
+                "shrink_decoder_index_remove": "6,5,4,3,2,0",  # elated-lake
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_encoder_index_remove": "2,3,5",
+                "shrink_decoder_index_remove": "6,5,4,3,2,1",  # new-test
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_encoder_index_remove": "3,7",
+                "shrink_decoder_index_remove": "6,5,4,3,2,0",  # elated-lake
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_encoder_index_remove": "1,3,6",
+                "shrink_decoder_index_remove": "6,5,4,3,2,1",  # new-test
+            },
         ]
-        self.configs = self.configs[:2]
+
         self.next(self.train, foreach='configs')
 
     @resources(

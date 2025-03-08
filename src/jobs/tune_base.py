@@ -35,7 +35,8 @@ class TuneTopicBase:
 
     def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
-                 learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0):
+                 learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0,
+                 shrink_encoder_index_remove=None, shrink_decoder_index_remove=None):
         self.model_name = model_name
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -49,6 +50,8 @@ class TuneTopicBase:
         self.model = None
         self.shrink_remove_encoder_layers = shrink_remove_encoder_layers
         self.shrink_remove_decoder_layers = shrink_remove_decoder_layers
+        self.shrink_decoder_index_remove = shrink_decoder_index_remove
+        self.shrink_encoder_index_remove = shrink_encoder_index_remove
         self.device = "cuda:0"
 
 
