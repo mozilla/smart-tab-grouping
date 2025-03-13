@@ -59,64 +59,19 @@ class TuneGenTopicModel(FlowSpec):
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shrink_decoder_index_remove": "6,5,4,3,2,0", # elated-lake
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_decoder_index_remove": "6,5,4,3,2,1", # new-test
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_encoder_index_remove": "1,3",
-                "shrink_decoder_index_remove": "6,5,4,3,2,0",  # elated-lake
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_encoder_index_remove": "2,3,5",
-                "shrink_decoder_index_remove": "6,5,4,3,2,1",  # new-test
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_encoder_index_remove": "3,7",
-                "shrink_decoder_index_remove": "6,5,4,3,2,0",  # elated-lake
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_encoder_index_remove": "1,3,6",
-                "shrink_decoder_index_remove": "6,5,4,3,2,1",  # new-test
-            },
+                "uncertainty_relabel_prob": 0.3
+            }
         ]
-
+        xx =   {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_decoder_index_remove": "6,5,4,3,2,1"  # warm-sun
+            }
         self.next(self.train, foreach='configs')
 
     @resources(
