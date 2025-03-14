@@ -30,6 +30,9 @@ TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
 TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-23_08-18__filtered.csv",
                      "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv"]# "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
 
+TUNING_DATA_PATHS_WITH_NONE = ["topic/fine_tuning_data__with_none__common_crawl_2025-02-23_08-18.csv",
+                               "topic/common_corpus_noise_none_3_12.csv"]
+
 SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
 
 def create_trainer_for_config(config:dict[str, any]):
@@ -59,10 +62,17 @@ class TuneGenTopicModel(FlowSpec):
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "uncertainty_relabel_prob": 0.3
-            }
-        ]
-        xx =   {
+            },
+            {
+                "learning_rate": 2e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+            },
+            {
                 "learning_rate": 3e-4,
                 "batch_size": 2,
                 "model_name": "google/flan-t5-small",
@@ -70,8 +80,83 @@ class TuneGenTopicModel(FlowSpec):
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shrink_decoder_index_remove": "6,5,4,3,2,1"  # warm-sun
+                "shrink_decoder_index_remove": "6,5,4,3,2",
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_decoder_index_remove": "5,4,3,2,1",
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_decoder_index_remove": "5,4,3,2",
+            },
+            {
+                "learning_rate": 4e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False
+            },
+            {
+                "learning_rate": 4e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_decoder_index_remove": "3,1",
             }
+        ]
+
+        self.configs = [
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "uncertainty_relabel_prob": 0.4
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "uncertainty_relabel_prob": 0.2
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "uncertainty_relabel_prob": 0.1
+            },
+        ]
+
+
         self.next(self.train, foreach='configs')
 
     @resources(
@@ -95,12 +180,13 @@ class TuneGenTopicModel(FlowSpec):
         print(train_config)
         trainer = create_trainer_for_config(train_config)
         local_filename = "tuning_data.csv"
-        print(f"Using training files {TUNING_DATA_PATHS}")
+        training_files = TUNING_DATA_PATHS_WITH_NONE
+        print(f"Using training files {training_files}")
         datasets = []
-        for training_file in TUNING_DATA_PATHS:
+        for training_file in training_files:
             download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
-            datasets.append(pd.read_csv(local_filename).fillna(""))
-        topic_data = pd.concat(datasets, ignore_index=True)
+            datasets.append(pd.read_csv(local_filename, keep_default_na=False).fillna(""))
+        topic_data = pd.concat(datasets, ignore_index=True).fillna("")
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
         topic_data = topic_data[topic_data["output"].str.len() <= LABEL_MAX_LENGTH]
 

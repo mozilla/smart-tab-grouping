@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import torch
 from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -103,10 +104,19 @@ class T5TopicGenerator(TopicGenerator):
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
 
-    def generate_response(self, prompt, max_tokens=34):
+
+    def generate_response(self, prompt, max_tokens=34, prob_limit=None):
         input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
-        outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1)
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        if prob_limit is not None:
+            outputs = self.model.generate(input_ids, output_scores=True, return_dict_in_generate=True)
+            probs = torch.softmax(outputs.scores[0], dim=-1)
+            max_prob, _ = torch.max(probs, dim=-1)
+            if max_prob < prob_limit:
+                return "None"
+            return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+        else:
+            outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1)
+            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
 
     def generate_token_response(self, prompt, max_tokens=34):
@@ -119,9 +129,9 @@ class T5TopicGenerator(TopicGenerator):
         seq = self.create_simple_prompt(data)
         return self.generate_response(seq, max_tokens)
 
-    def get_topic_with_keywords(self, data, max_tokens: int = 12, legacy=False) -> str:
+    def get_topic_with_keywords(self, data, max_tokens: int = 12, legacy=False, prob_limit=None) -> str:
         seq = self.create_simple_prompt_with_keywords(data, legacy=legacy)
-        return self.generate_response(seq, max_tokens)
+        return self.generate_response(seq, max_tokens, prob_limit=prob_limit)
 
 
 class OpenAITopicGenerator(TopicGenerator):

@@ -7,6 +7,7 @@ from tune_base import TuneTopicBase, INPUT_PROMPT_ID, keyword_prompt
 import torch
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
+import torch.nn.functional as F
 
 from transformers import (
     T5ForConditionalGeneration,
@@ -16,6 +17,81 @@ from transformers import (
 
 from util.storage import upload_directory
 from utils import get_bad_word_ids
+
+"""
+from weave import Model
+
+  @weave.op()
+            def predict(self, input_string: str) -> str:
+                output = self.scored_dataset[url]
+                return output
+
+            hallucination_scorer = HallucinationFreeScorer(
+                model_id="gpt-4o",
+                column_map={"context": "input", "output": "output"}
+            )
+
+            evaluation = weave.Evaluation(dataset=dataset, scorers=[quality_scorer, hallucination_scorer, summarization_scorer, toxicity_scorer, bias_scorer, fluency_scorer], name=model_choice)
+            asyncio.run(evaluation.evaluate(model))
+                    dataset = [
+            {'context': contexts.iloc[i], 'url': urls[i]}
+            for i in range(len(df))
+        ]
+"""
+
+
+def confidence_penalty_loss(logits, labels, none_token_id, threshold=0.5, penalty_weight=0.2):
+    """
+    Penalizes uncertain predictions that are not 'none'.
+    """
+    print(logits.shape)
+    probs = F.softmax(logits, dim=-1)
+    max_probs, preds = torch.max(probs, dim=-1)  # Get max probability per token
+
+    # Compute cross-entropy loss
+    ce_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1), ignore_index=-100)
+
+    # Penalize if confidence is below threshold but "none" isn't chosen
+    none_mask = (preds == none_token_id).float()
+    low_confidence = (max_probs < threshold).float()
+
+    penalty = penalty_weight * (1 - none_mask) * low_confidence
+    return ce_loss + penalty.mean()
+
+
+def compute_eos_reward(logits, labels, eos_token_id):
+    probs = F.softmax(logits, dim=-1)  # Convert logits to probabilities
+    eos_probs = probs[:, :, eos_token_id]  # Extract EOS token probabilities
+    eos_mask = (labels == eos_token_id).float()  # Mask for true EOS positions
+    eos_reward = torch.sum(eos_probs * eos_mask) / (torch.sum(eos_mask) + 1e-8)  # Average EOS confidence
+    return -eos_reward
+
+
+def brevity_loss(logits, labels, eos_token_id, weight):
+    # Standard CrossEntropyLoss
+    ce_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1), ignore_index=-100)
+    eos_reward = compute_eos_reward(logits, labels, eos_token_id)
+    return ce_loss + eos_reward * weight
+
+
+class BrevityTrainer(Trainer):
+    def __init__(self, tokenizer=None, uncertainty_relabel_prob=0.3, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tokenizer = tokenizer  # Store tokenizer for loss function
+        self.eos_token_id = self.tokenizer("</s>").input_ids[0]
+        print(f"Brevity loss - Eos token {self.eos_token_id}")
+        self.uncertainty_relabel_prob = uncertainty_relabel_prob
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        """
+        Override default loss function.
+        """
+        labels = inputs.get("labels")
+        outputs = model(**inputs)
+        logits = outputs.logits  # Get model logits
+        loss = brevity_loss(logits, labels, self.eos_token_id,
+                            self.uncertainty_relabel_prob)  # confidence_penalty_loss(logits, labels, self.none_token_id, threshold=self.uncertainty_relabel_prob)
+        return (loss, outputs) if return_outputs else loss
 
 
 class TuneTopicT5(TuneTopicBase):
@@ -85,13 +161,14 @@ class TuneTopicT5(TuneTopicBase):
     def train(self):
         torch.cuda.empty_cache()
         shrink_model = self.shrink_remove_encoder_layers > 0 or self.shrink_remove_decoder_layers > 0 or \
-            self.shrink_decoder_index_remove or self.shrink_encoder_index_remove
+                       self.shrink_decoder_index_remove or self.shrink_encoder_index_remove
 
         os.environ["WANDB_LOG_MODEL"] = "end"  # save the model to WandB
         wandb.init(project="tab_grouping",
                    config={"learning_rate": self.learning_rate, "batch_size": self.batch_size,
                            "model_name": self.model_name,
                            "label_column": self.label_column,
+                           "uncertainty_relabel_prob": self.uncertainty_relabel_prob,
                            "use_keywords": self.use_keywords,
                            "learning_rate_decay": self.learning_rate_decay,
                            "single_tab_handling": self.single_tab_handling,
@@ -113,12 +190,12 @@ class TuneTopicT5(TuneTopicBase):
                 learning_rate=self.learning_rate,
                 per_device_train_batch_size=self.batch_size,
                 per_device_eval_batch_size=1,
-                num_train_epochs=2,  # consider moving back to 3
+                num_train_epochs=2,
                 weight_decay=0.01,
                 save_total_limit=1,
                 save_strategy="epoch",
                 lr_scheduler_type="cosine",
-                warmup_ratio=0.1
+                warmup_ratio=0.05
             )
         else:
             training_args = TrainingArguments(
@@ -127,41 +204,73 @@ class TuneTopicT5(TuneTopicBase):
                 learning_rate=self.learning_rate,
                 per_device_train_batch_size=self.batch_size,
                 per_device_eval_batch_size=1,
-                num_train_epochs=2,  # consider moving back to 3
+                num_train_epochs=2,
                 weight_decay=0.01,
                 save_total_limit=1,
                 save_strategy="epoch",
+                warmup_ratio=0.05)
+
+        if self.uncertainty_relabel_prob is not None and self.uncertainty_relabel_prob > 0.0:
+            trainer = BrevityTrainer(
+                tokenizer=self.tokenizer,
+                model=self.model,
+                args=training_args,
+                train_dataset=tokenized_training_dataset,
+                eval_dataset=tokenized_training_dataset,
+                uncertainty_relabel_prob=self.uncertainty_relabel_prob
             )
-
-        trainer = Trainer(
-            model=self.model,
-            args=training_args,
-            train_dataset=tokenized_training_dataset,
-            eval_dataset=tokenized_training_dataset
-        )
-
-        trainer.train()
-        if shrink_model:
-            self.run_eval(tokenized_eval_dataset, name="Pre Shrink Eval", prefix="preshrink")
         else:
-            self.run_eval(tokenized_eval_dataset)
-        tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
-        self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val")
-
-        if shrink_model:
-            self.shrink_remove_layers(self.model, "encoder", self.shrink_remove_encoder_layers, self.shrink_encoder_index_remove)
-            self.shrink_remove_layers(self.model, "decoder", self.shrink_remove_decoder_layers, self.shrink_decoder_index_remove)
-
-            training_args.num_train_epochs = 1
             trainer = Trainer(
                 model=self.model,
                 args=training_args,
                 train_dataset=tokenized_training_dataset,
                 eval_dataset=tokenized_training_dataset
             )
+        single_training_run = True
+        do_first_run = single_training_run and not shrink_model
+        if do_first_run:
             trainer.train()
+            if shrink_model:
+                self.run_eval(tokenized_eval_dataset, name="Pre Shrink Eval", prefix="preshrink")
+            else:
+                self.run_eval(tokenized_eval_dataset)
+            tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
+            self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val")
 
-            self.run_eval(tokenized_eval_dataset, name="Post Remove Eval", prefix="post_remove_eval")
+        has_second_train_run = False
+
+        if self.uncertainty_relabel_prob is not None and self.uncertainty_relabel_prob > 0.0:
+            has_second_train_run = True
+
+        if shrink_model:
+            has_second_train_run = True
+            self.shrink_remove_layers(self.model, "encoder", self.shrink_remove_encoder_layers,
+                                      self.shrink_encoder_index_remove)
+            self.shrink_remove_layers(self.model, "decoder", self.shrink_remove_decoder_layers,
+                                      self.shrink_decoder_index_remove)
+
+        if has_second_train_run:
+            training_args.num_train_epochs = 1 if do_first_run else 3
+            if self.uncertainty_relabel_prob is not None and self.uncertainty_relabel_prob > 0.0:
+                trainer = BrevityTrainer(
+                    tokenizer=self.tokenizer,
+                    model=self.model,
+                    args=training_args,
+                    train_dataset=tokenized_training_dataset,
+                    eval_dataset=tokenized_training_dataset,
+                    uncertainty_relabel_prob=self.uncertainty_relabel_prob
+                )
+            else:
+                trainer = Trainer(
+                    model=self.model,
+                    args=training_args,
+                    train_dataset=tokenized_training_dataset,
+                    eval_dataset=tokenized_training_dataset
+                )
+            trainer.train()
+            name_prefix = "Post Remove" if shrink_model else "Post Relabel"
+            dataset_prefix = "post_remove" if shrink_model else "post_relabel"
+            self.run_eval(tokenized_eval_dataset, name=f"{name_prefix} Eval", prefix=f"{dataset_prefix}_eval")
             tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
             self.run_eval(tokenized_validation_dataset, name="Post Remove Single Tab Validation",
                           prefix="post_remove_single_tab_val")
@@ -188,6 +297,24 @@ class TuneTopicT5(TuneTopicBase):
         self.model = None
         torch.cuda.empty_cache()
 
+    def relabel_probabilities(self, dataset, prob_limit=0.1, new_label="None"):
+        def relabel(item):
+            input_text = item["target_text"]
+            input_encodings = self.tokenizer(input_text, return_tensors="pt", truncation=True, padding=True)
+            input_ids = input_encodings["input_ids"].to(self.device)
+            outputs = self.model.generate(
+                input_ids, output_scores=True, max_length=30, num_return_sequences=1, return_dict_in_generate=True
+            )
+            probs = torch.softmax(outputs.scores[0], dim=-1)
+            max_prob, _ = torch.max(probs, dim=-1)
+            return {"target_text": new_label if max_prob < prob_limit else item["target_text"], **item}
+
+        dataset = dataset.map(relabel, batched=False)  # Ensure batched=False is explicitly set
+
+        found = sum(1 for item in dataset if item["target_text"] == new_label)
+        print(f"Test relabel dataset: {found} out of {len(dataset)} items relabeled to {new_label}")
+        return dataset
+
     def run_eval(self, eval_dataset, name="Eval", prefix=None):
         results_labels = []
         results_output = []
@@ -195,12 +322,10 @@ class TuneTopicT5(TuneTopicBase):
         for item in eval_dataset:
             input = item["input_text"]
             label = item['target_text']
-
             input_encodings = self.tokenizer(input, return_tensors="pt", truncation=True,
                                              padding=True)
             label_encodings = self.tokenizer(label, return_tensors="pt", truncation=True,
                                              padding=True)
-
             input_ids = input_encodings["input_ids"].to(self.device)
             attention_mask = input_encodings["attention_mask"].to(self.device)
             label_ids = label_encodings["input_ids"].to(self.device)

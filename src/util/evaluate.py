@@ -4,6 +4,7 @@ from functools import partial
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
 import numpy as np
+
 class NLPEvaluator:
     def __init__(self):
         from rouge_score import rouge_scorer
