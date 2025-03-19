@@ -36,12 +36,12 @@ class TuneTopicBase:
     def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
                  learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0,
-                 shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, uncertainty_relabel_prob=None):
+                 shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, brevity_weight=None):
         self.model_name = model_name
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.label_column = label_column
-        self.uncertainty_relabel_prob = uncertainty_relabel_prob
+        self.brevity_weight = brevity_weight
         self.learning_rate_decay = learning_rate_decay
         self.single_tab_handling = single_tab_handling
         self.use_keywords = use_keywords
@@ -85,7 +85,7 @@ class TuneTopicBase:
         Returns: Dict of stats
         """
         eval = NLPEvaluator()
-        df = pd.DataFrame({"label": decoded_preds, "compare": decoded_labels})
+        df = pd.DataFrame({"label": decoded_labels, "compare": decoded_preds})
         result = eval.get_avg_scores(df, label_key="label", compare_column="compare")
         if prefix is not None:
             result = {f"{prefix}_{key}": value for key, value in result.items()}

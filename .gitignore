@@ -166,3 +166,5 @@ models
 private
 .env
 output
+src/wandb
+wandb/

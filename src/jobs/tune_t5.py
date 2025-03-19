@@ -42,7 +42,7 @@ from weave import Model
 
 def confidence_penalty_loss(logits, labels, none_token_id, threshold=0.5, penalty_weight=0.2):
     """
-    Penalizes uncertain predictions that are not 'none'.
+    Penalizes long predictions
     """
     print(logits.shape)
     probs = F.softmax(logits, dim=-1)
@@ -75,12 +75,12 @@ def brevity_loss(logits, labels, eos_token_id, weight):
 
 
 class BrevityTrainer(Trainer):
-    def __init__(self, tokenizer=None, uncertainty_relabel_prob=0.3, *args, **kwargs):
+    def __init__(self, tokenizer=None, brevity_weight=0.3, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tokenizer = tokenizer  # Store tokenizer for loss function
         self.eos_token_id = self.tokenizer("</s>").input_ids[0]
         print(f"Brevity loss - Eos token {self.eos_token_id}")
-        self.uncertainty_relabel_prob = uncertainty_relabel_prob
+        self.brevity_weight = brevity_weight
 
     def compute_loss(self, model, inputs, return_outputs=False):
         """
@@ -90,7 +90,7 @@ class BrevityTrainer(Trainer):
         outputs = model(**inputs)
         logits = outputs.logits  # Get model logits
         loss = brevity_loss(logits, labels, self.eos_token_id,
-                            self.uncertainty_relabel_prob)  # confidence_penalty_loss(logits, labels, self.none_token_id, threshold=self.uncertainty_relabel_prob)
+                            self.brevity_weight)  # confidence_penalty_loss(logits, labels, self.none_token_id, threshold=self.uncertainty_relabel_prob)
         return (loss, outputs) if return_outputs else loss
 
 
@@ -168,7 +168,7 @@ class TuneTopicT5(TuneTopicBase):
                    config={"learning_rate": self.learning_rate, "batch_size": self.batch_size,
                            "model_name": self.model_name,
                            "label_column": self.label_column,
-                           "uncertainty_relabel_prob": self.uncertainty_relabel_prob,
+                           "brevity_weight": self.brevity_weight,
                            "use_keywords": self.use_keywords,
                            "learning_rate_decay": self.learning_rate_decay,
                            "single_tab_handling": self.single_tab_handling,
@@ -210,14 +210,14 @@ class TuneTopicT5(TuneTopicBase):
                 save_strategy="epoch",
                 warmup_ratio=0.05)
 
-        if self.uncertainty_relabel_prob is not None and self.uncertainty_relabel_prob > 0.0:
+        if self.brevity_weight is not None and self.brevity_weight > 0.0:
             trainer = BrevityTrainer(
                 tokenizer=self.tokenizer,
                 model=self.model,
                 args=training_args,
                 train_dataset=tokenized_training_dataset,
                 eval_dataset=tokenized_training_dataset,
-                uncertainty_relabel_prob=self.uncertainty_relabel_prob
+                brevity_weight=self.brevity_weight
             )
         else:
             trainer = Trainer(
@@ -226,39 +226,37 @@ class TuneTopicT5(TuneTopicBase):
                 train_dataset=tokenized_training_dataset,
                 eval_dataset=tokenized_training_dataset
             )
-        single_training_run = True
+
+        single_training_run = False
         do_first_run = single_training_run and not shrink_model
+
+        tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
+
         if do_first_run:
             trainer.train()
             if shrink_model:
                 self.run_eval(tokenized_eval_dataset, name="Pre Shrink Eval", prefix="preshrink")
             else:
                 self.run_eval(tokenized_eval_dataset)
-            tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
             self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val")
 
         has_second_train_run = False
-
-        if self.uncertainty_relabel_prob is not None and self.uncertainty_relabel_prob > 0.0:
-            has_second_train_run = True
-
         if shrink_model:
             has_second_train_run = True
             self.shrink_remove_layers(self.model, "encoder", self.shrink_remove_encoder_layers,
                                       self.shrink_encoder_index_remove)
             self.shrink_remove_layers(self.model, "decoder", self.shrink_remove_decoder_layers,
                                       self.shrink_decoder_index_remove)
-
         if has_second_train_run:
             training_args.num_train_epochs = 1 if do_first_run else 3
-            if self.uncertainty_relabel_prob is not None and self.uncertainty_relabel_prob > 0.0:
+            if self.brevity_weight is not None and self.brevity_weight > 0.0:
                 trainer = BrevityTrainer(
                     tokenizer=self.tokenizer,
                     model=self.model,
                     args=training_args,
                     train_dataset=tokenized_training_dataset,
                     eval_dataset=tokenized_training_dataset,
-                    uncertainty_relabel_prob=self.uncertainty_relabel_prob
+                    brevity_weight=self.brevity_weight
                 )
             else:
                 trainer = Trainer(
@@ -268,8 +266,8 @@ class TuneTopicT5(TuneTopicBase):
                     eval_dataset=tokenized_training_dataset
                 )
             trainer.train()
-            name_prefix = "Post Remove" if shrink_model else "Post Relabel"
-            dataset_prefix = "post_remove" if shrink_model else "post_relabel"
+            name_prefix = "Post Remove"
+            dataset_prefix = "post_remove"
             self.run_eval(tokenized_eval_dataset, name=f"{name_prefix} Eval", prefix=f"{dataset_prefix}_eval")
             tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
             self.run_eval(tokenized_validation_dataset, name="Post Remove Single Tab Validation",
