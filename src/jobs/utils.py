@@ -11,10 +11,13 @@ def load_words_from_url(url):
 def get_bad_word_ids(model_name: str = "Mozilla/smart-tab-topic"):
     tokenizer = T5Tokenizer.from_pretrained(model_name, add_prefix_space=True)
 
-    bad_words = load_words_from_url(
-        "https://raw.githubusercontent.com/snguyenthanh/better_profanity/master/better_profanity/profanity_wordlist.txt"
+    profanity = load_words_from_url(
+        "https://raw.githubusercontent.com/mozilla/fx-ml-train/refs/heads/main/trust_and_safety/word_blocking/profanity.txt"
     )
-
+    stg_specific_words = load_words_from_url(
+        "https://raw.githubusercontent.com/mozilla/fx-ml-train/main/trust_and_safety/word_blocking/smart_tab_grouping_specific.txt"
+    )
+    bad_words = list({*profanity, *stg_specific_words})
     vocab = tokenizer.get_vocab()
     vocab = [tokenizer.convert_tokens_to_string([token]).lower().strip() for token in vocab]
 
@@ -29,3 +32,12 @@ def get_bad_word_ids(model_name: str = "Mozilla/smart-tab-topic"):
     })
     return bad_words_ids
 
+if __name__ == "__main__":
+    profanity = load_words_from_url(
+        "https://raw.githubusercontent.com/mozilla/fx-ml-train/refs/heads/main/trust_and_safety/word_blocking/profanity.txt"
+    )
+    stg_specific_words = load_words_from_url(
+        "https://raw.githubusercontent.com/mozilla/fx-ml-train/main/trust_and_safety/word_blocking/smart_tab_grouping_specific.txt"
+    )
+    bad_words = list({*profanity, *stg_specific_words})
+    print(bad_words)

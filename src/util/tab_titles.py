@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import torch
 from pydantic import BaseModel
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -103,13 +104,22 @@ class T5TopicGenerator(TopicGenerator):
         self.model = T5ForConditionalGeneration.from_pretrained(model_name)
         self.tokenizer = T5Tokenizer.from_pretrained(model_name)
 
-    def generate_response(self, prompt, max_tokens=14):
+
+    def generate_response(self, prompt, max_tokens=34, prob_limit=None):
         input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
-        outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1)
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        if prob_limit is not None:
+            outputs = self.model.generate(input_ids, output_scores=True, return_dict_in_generate=True)
+            probs = torch.softmax(outputs.scores[0], dim=-1)
+            max_prob, _ = torch.max(probs, dim=-1)
+            if max_prob < prob_limit:
+                return "None"
+            return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+        else:
+            outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1)
+            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return response
 
-    def generate_token_response(self, prompt, max_tokens=14):
+    def generate_token_response(self, prompt, max_tokens=34):
         input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids
         outputs = self.model.generate(input_ids, max_length=max_tokens, num_return_sequences=1,
                                       return_dict_in_generate=True, output_scores=True)
@@ -119,9 +129,9 @@ class T5TopicGenerator(TopicGenerator):
         seq = self.create_simple_prompt(data)
         return self.generate_response(seq, max_tokens)
 
-    def get_topic_with_keywords(self, data, max_tokens: int = 12, legacy=False) -> str:
+    def get_topic_with_keywords(self, data, max_tokens: int = 12, legacy=False, prob_limit=None) -> str:
         seq = self.create_simple_prompt_with_keywords(data, legacy=legacy)
-        return self.generate_response(seq, max_tokens)
+        return self.generate_response(seq, max_tokens, prob_limit=prob_limit)
 
 
 class OpenAITopicGenerator(TopicGenerator):
@@ -139,6 +149,11 @@ class OpenAITopicGenerator(TopicGenerator):
         return np.array([np.mean(self.hint_embedder(sentence)[0], axis=0) for sentence in embed_input])
 
     def prepare_hint_data(self, hint_db):
+        """
+        Ingest a dataframe with a 'Hint' column that has user labeled
+        hints. We will use embedding distance to use these examples to
+        inform the OpenAI multi-shot example.
+        """
         self.hint_embedder = pipeline("feature-extraction", model="sentence-transformers/all-MiniLM-L6-v2", device=-1)
         self.hint_db = hint_db.dropna(subset=['Hint']).reset_index(drop=True)
         self.hint_db.fillna("", inplace=True)
@@ -160,14 +175,17 @@ class OpenAITopicGenerator(TopicGenerator):
                              "keywords": r.input_keywords.split(","),
                              "title": r.Hint} for _, r in closest_rows.iterrows()]
             hint_item_list = hint_item_list + custom_items[:4]
-        seq = self.create_prompt_sequence(AnnotationItem(data["documents"], data["keywords"]).get_dict(), hint_item_list)
+        seq = self.create_prompt_sequence(AnnotationItem(data["documents"], data["keywords"], data["descriptions"]).get_dict(), hint_item_list)
+        print("final sequence")
+        print(seq[-1])
         return self.lm.generic_query(seq, max_tokens=max_tokens)
 
 
 class AnnotationItem():
-    def __init__(self, documents, keywords):
+    def __init__(self, documents, keywords, descriptions=None):
         self.documents = documents
         self.keywords = keywords
+        self.descriptions = descriptions
         if isinstance(self.documents, str):
             self.documents = list(filter(lambda a: len(a) > 0, self.documents.split("\n")))
         if isinstance(self.keywords, str):
