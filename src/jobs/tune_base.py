@@ -36,7 +36,10 @@ class TuneTopicBase:
     def __init__(self, learning_rate: float = 1e-4, batch_size: int = 2, model_name: str = 'google/flan-t5-base',
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
                  learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0,
-                 shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, brevity_weight=None):
+                 shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, brevity_weight=None,
+                 label_prefix=None):
+        self.device = "cuda:0"
+
         self.model_name = model_name
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -53,7 +56,7 @@ class TuneTopicBase:
         self.shrink_remove_decoder_layers = shrink_remove_decoder_layers
         self.shrink_decoder_index_remove = shrink_decoder_index_remove
         self.shrink_encoder_index_remove = shrink_encoder_index_remove
-        self.device = "cuda:0"
+        self.label_prefix = label_prefix
 
 
     def compute_metrics(self, eval_pred):
@@ -86,6 +89,9 @@ class TuneTopicBase:
         """
         eval = NLPEvaluator()
         df = pd.DataFrame({"label": decoded_labels, "compare": decoded_preds})
+        if self.label_prefix is not None:
+            df["label"] = df["label"].apply(lambda a: a.replace(self.label_prefix, ""))
+            df["compare"] = df["compare"].apply(lambda a: a.replace(self.label_prefix, ""))
         result = eval.get_avg_scores(df, label_key="label", compare_column="compare")
         if prefix is not None:
             result = {f"{prefix}_{key}": value for key, value in result.items()}

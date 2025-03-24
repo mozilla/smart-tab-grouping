@@ -8,6 +8,7 @@ def load_words_from_url(url):
     words = {line.strip() for line in response.text.splitlines()}
     return words
 
+
 def get_bad_word_ids(model_name: str = "Mozilla/smart-tab-topic"):
     tokenizer = T5Tokenizer.from_pretrained(model_name, add_prefix_space=True)
 
@@ -18,6 +19,8 @@ def get_bad_word_ids(model_name: str = "Mozilla/smart-tab-topic"):
         "https://raw.githubusercontent.com/mozilla/fx-ml-train/main/trust_and_safety/word_blocking/smart_tab_grouping_specific.txt"
     )
     bad_words = list({*profanity, *stg_specific_words})
+    bad_words = bad_words + [b.title() for b in bad_words] # previous bad words + title case
+
     vocab = tokenizer.get_vocab()
     vocab = [tokenizer.convert_tokens_to_string([token]).lower().strip() for token in vocab]
 

@@ -126,18 +126,18 @@ def create_tuning_data_for_synthetic_dataset():
     result.to_csv(f"./data/topic_model_fine_tune/topic_fine_tuning_data__{timestamp}.csv")
 
 
-def create_tuning_data_for_single_item_common_crawl():
-    #  "pocket_no_article_parsed__10_50_v_2024_processed.csv")
-    df = pd.read_csv("./data/external/common_crawl.csv")
+def create_tuning_data_for_single_item_simple(path, file_label):
+    df = pd.read_csv(path)
     df["description"] = df["description"].fillna("")
     df = df.dropna(subset=["title"]).reset_index(drop=True)
     df["description"] = df["description"].apply(lambda a: "" if a == "No Description" else a)
     gen = TabTitleTrainingData()
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     result = gen.gen_data_single_document(df)
-    result.to_csv(f"./data/topic_model_fine_tune/topic_fine_tuning_data__common_crawl_{timestamp}.csv")
+    result.to_csv(f"./data/topic_model_fine_tune/topic_fine_tuning_data__{file_label}_{timestamp}.csv")
 
 
 if __name__ == "__main__":
     load_dotenv()
-    create_tuning_data_for_single_item_common_crawl()
+#    create_tuning_data_for_single_item_simple("./data/external/common_crawl.csv", "common_crawl")
+    create_tuning_data_for_single_item_simple("./data/synthetic_datasets/search.csv", "search")
