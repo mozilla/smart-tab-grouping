@@ -11,26 +11,18 @@ def load_words_from_url(url):
 
 def get_bad_word_ids(model_name: str = "Mozilla/smart-tab-topic"):
     tokenizer = T5Tokenizer.from_pretrained(model_name, add_prefix_space=True)
-
     profanity = load_words_from_url(
         "https://raw.githubusercontent.com/mozilla/fx-ml-train/refs/heads/main/trust_and_safety/word_blocking/profanity.txt"
     )
     stg_specific_words = load_words_from_url(
-        "https://raw.githubusercontent.com/mozilla/fx-ml-train/main/trust_and_safety/word_blocking/smart_tab_grouping_specific.txt"
+        "https://raw.githubusercontent.com/mozilla/fx-ml-train/refs/heads/main/trust_and_safety/word_blocking/smart_tab_grouping_specific.txt"
     )
-    bad_words = list({*profanity, *stg_specific_words})
+    bad_words = list(set(list(profanity) + list(stg_specific_words)))
     bad_words = bad_words + [b.title() for b in bad_words] # previous bad words + title case
 
-    vocab = tokenizer.get_vocab()
-    vocab = [tokenizer.convert_tokens_to_string([token]).lower().strip() for token in vocab]
-
-    vocab_bad_words = [word for word in vocab if word in bad_words]
-    bad_words_ids = []
-    for word in vocab_bad_words:
-        tokenized_word = tokenizer([word], add_special_tokens=False).input_ids[0]
-        bad_words_ids.append(tokenized_word)
+    bad_words_ids = tokenizer(bad_words, add_special_tokens=False).input_ids
     print({
-        'bad_words': vocab_bad_words,
+        'bad_words': bad_words,
         'bad_word_ids': bad_words_ids
     })
     return bad_words_ids
