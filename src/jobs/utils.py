@@ -8,6 +8,7 @@ def load_words_from_url(url):
     words = {line.strip() for line in response.text.splitlines()}
     return words
 
+
 def get_bad_word_ids(model_name: str = "Mozilla/smart-tab-topic"):
     tokenizer = T5Tokenizer.from_pretrained(model_name, add_prefix_space=True)
     profanity = load_words_from_url(

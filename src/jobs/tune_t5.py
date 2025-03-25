@@ -39,26 +39,6 @@ from weave import Model
         ]
 """
 
-
-def confidence_penalty_loss(logits, labels, none_token_id, threshold=0.5, penalty_weight=0.2):
-    """
-    Penalizes long predictions
-    """
-    print(logits.shape)
-    probs = F.softmax(logits, dim=-1)
-    max_probs, preds = torch.max(probs, dim=-1)  # Get max probability per token
-
-    # Compute cross-entropy loss
-    ce_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1), ignore_index=-100)
-
-    # Penalize if confidence is below threshold but "none" isn't chosen
-    none_mask = (preds == none_token_id).float()
-    low_confidence = (max_probs < threshold).float()
-
-    penalty = penalty_weight * (1 - none_mask) * low_confidence
-    return ce_loss + penalty.mean()
-
-
 def compute_eos_reward(logits, labels, eos_token_id):
     probs = F.softmax(logits, dim=-1)  # Convert logits to probabilities
     eos_probs = probs[:, :, eos_token_id]  # Extract EOS token probabilities
@@ -90,9 +70,10 @@ class BrevityTrainer(Trainer):
         outputs = model(**inputs)
         logits = outputs.logits  # Get model logits
         loss = brevity_loss(logits, labels, self.eos_token_id,
-                            self.brevity_weight)  # confidence_penalty_loss(logits, labels, self.none_token_id, threshold=self.uncertainty_relabel_prob)
+                            self.brevity_weight)
         return (loss, outputs) if return_outputs else loss
 
+PROCESSED_COLUMN = "processed_label_column"
 
 class TuneTopicT5(TuneTopicBase):
     def preprocess_function(self, examples):
@@ -113,11 +94,19 @@ class TuneTopicT5(TuneTopicBase):
         topic_data[INPUT_PROMPT_ID] = topic_data.apply(
             lambda row: self.prompter.generate_prompt(row.input_titles, row.input_keywords), axis=1)
 
+        if self.label_prefix is not None:
+            topic_data[PROCESSED_COLUMN] = self.label_prefix + topic_data[self.label_column]
+
         validation_data.input_keywords = validation_data.input_keywords.fillna("")
         validation_data[INPUT_PROMPT_ID] = validation_data.apply(
             lambda row: self.prompter.generate_prompt(row.input_titles, row.input_keywords), axis=1)
 
+        if self.label_prefix is not None:
+            validation_data[PROCESSED_COLUMN] = self.label_prefix + validation_data[self.label_column]
+            self.label_column = PROCESSED_COLUMN
+
         topic_data_training, topic_data_eval = train_test_split(topic_data, test_size=0.2)
+
         train_data_dict = {"input_text": topic_data_training[INPUT_PROMPT_ID].to_list(),
                            "target_text": topic_data_training[self.label_column].to_list()}
         eval_data_dict = {"input_text": topic_data_eval[INPUT_PROMPT_ID].to_list(),
@@ -227,8 +216,7 @@ class TuneTopicT5(TuneTopicBase):
                 eval_dataset=tokenized_training_dataset
             )
 
-        single_training_run = False
-        do_first_run = single_training_run and not shrink_model
+        do_first_run = True # We were testing skipping the first run but got bad results
 
         tokenized_validation_dataset = self.validation_dataset.map(self.preprocess_function, batched=True)
 
