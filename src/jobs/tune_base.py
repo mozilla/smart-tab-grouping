@@ -37,7 +37,8 @@ class TuneTopicBase:
                  label_column: str = "output", use_keywords: bool = True, single_tab_handling: bool = False,
                  learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0,
                  shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, brevity_weight=None,
-                 label_prefix=None):
+                 label_prefix=None,
+                 shorten_training_label_boost=None):
         self.device = "cuda:0"
 
         self.model_name = model_name
@@ -57,6 +58,7 @@ class TuneTopicBase:
         self.shrink_decoder_index_remove = shrink_decoder_index_remove
         self.shrink_encoder_index_remove = shrink_encoder_index_remove
         self.label_prefix = label_prefix
+        self.shorten_training_label_boost = shorten_training_label_boost
 
 
     def compute_metrics(self, eval_pred):
