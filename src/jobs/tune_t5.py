@@ -165,6 +165,7 @@ class TuneTopicT5(TuneTopicBase):
                            "shrink_decoder_index_remove": self.shrink_decoder_index_remove,
                            "shrink_remove_encoder_layers": self.shrink_remove_encoder_layers,
                            "shrink_remove_decoder_layers": self.shrink_remove_decoder_layers,
+                           "shorten_training_label_boost": self.shorten_training_label_boost,
                            "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename})
         print(f"W&B Run ID: {wandb.run.id}")
         print(f"W&B Run Name: {wandb.run.name}")
