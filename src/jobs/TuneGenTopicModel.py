@@ -33,8 +33,9 @@ TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-2
 
 TUNING_DATA_PATHS_WITH_NONE = ["topic/fine_tuning_data__with_none__common_crawl_2025-02-23_08-18.csv",
                                "topic/common_corpus_noise_none_3_12.csv",
+                               "topic/search_simplified.csv"
                                ]
-# "topic/search_simplified.csv"
+
 NOISE_TRAINING_DATA_SET_INDEX = 1
 
 SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
@@ -90,20 +91,62 @@ class TuneGenTopicModel(FlowSpec):
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
                 "shrink_decoder_index_remove": "5,4,3,2,1",
+                "shorten_training_label_boost": 0.08
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shrink_decoder_index_remove": "5,4,3,2,1",
                 "shorten_training_label_boost": 0.13
             },
         ]
 
+        self.configs = [
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/flan-t5-small",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shorten_training_label_boost": 0.1
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-mini",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shorten_training_label_boost": 0.1
+            },
+            {
+                "learning_rate": 3e-4,
+                "batch_size": 2,
+                "model_name": "google/t5-efficient-tiny",
+                "label_column": "output",
+                "use_keywords": True,
+                "single_tab_handling": False,
+                "learning_rate_decay": False,
+                "shorten_training_label_boost": 0.1
+            }
+            ]
+
         self.next(self.train, foreach='configs')
 
-    @resources(
-        memory=10240,
-        disk=20240,
-        cpu=2,
-    )
     @kubernetes(image="us-docker.pkg.dev/moz-fx-mozsoc-ml-nonprod/metaflow-dockers/metaflow_gpu:onnx2",
                 gpu_vendor="nvidia",
-                gpu=1
+                gpu=1,
+                memory=10240,
+                disk=20240,
+                cpu=2,
                 )
     @card
     @step
@@ -123,7 +166,7 @@ class TuneGenTopicModel(FlowSpec):
         for training_file in training_files:
             download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
             datasets.append(pd.read_csv(local_filename, keep_default_na=False).fillna(""))
-        # datasets[1] = datasets[NOISE_TRAINING_DATA_SET_INDEX].sample(n=450).reset_index(drop=True)  # reduce number a bit of None set
+        datasets[NOISE_TRAINING_DATA_SET_INDEX] = datasets[NOISE_TRAINING_DATA_SET_INDEX].sample(n=500).reset_index(drop=True)  # reduce number a bit of None set
 
         topic_data = pd.concat(datasets, ignore_index=True).fillna("")
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
