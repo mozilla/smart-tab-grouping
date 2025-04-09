@@ -68,8 +68,8 @@ class TuneGenTopicModel(FlowSpec):
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
+                "shorten_training_label_boost": 0.08,
                 "shrink_decoder_index_remove": "5,4,3,2,1",
-                "shorten_training_label_boost": 0.1
             },
             {
                 "learning_rate": 3e-4,
@@ -79,63 +79,8 @@ class TuneGenTopicModel(FlowSpec):
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
+                "shorten_training_label_boost": 0.1,
                 "shrink_decoder_index_remove": "5,4,3,2,1",
-                "shorten_training_label_boost": 0.06
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_decoder_index_remove": "5,4,3,2,1",
-                "shorten_training_label_boost": 0.08
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shrink_decoder_index_remove": "5,4,3,2,1",
-                "shorten_training_label_boost": 0.13
-            },
-        ]
-
-        self.configs = [
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shorten_training_label_boost": 0.1
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-mini",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shorten_training_label_boost": 0.1
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/t5-efficient-tiny",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shorten_training_label_boost": 0.1
             }
             ]
 
