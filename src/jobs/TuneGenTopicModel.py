@@ -30,7 +30,9 @@ def cleanup_wandb_args(config):
 
 TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
 TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-23_08-18__filtered.csv",
-                     "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv"]  # "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
+                     "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv",
+                     "topic/search_simplified.csv"
+                     ]  # "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
 
 TUNING_DATA_PATHS_WITH_NONE = ["topic/fine_tuning_data__with_none__common_crawl_2025-02-23_08-18.csv",
                                "topic/common_corpus_noise_none_3_12.csv",
@@ -65,17 +67,29 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
         self.configs = [
             {
-                "learning_rate": 5e-3,
+                "learning_rate": 1e-4,
                 "batch_size": 8,
                 "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shorten_training_label_boost": 0.08,
+                "shorten_training_label_boost": 0.05,
                 "teacher_model_artifact": "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
             }
             ]
+        self.configs = [
+            {
+                    "learning_rate": 3e-4,
+                    "batch_size": 2,
+                    "model_name": "google/flan-t5-base",
+                    "label_column": "output",
+                    "use_keywords": True,
+                    "single_tab_handling": False,
+                    "learning_rate_decay": False,
+                    "shorten_training_label_boost": 0.05
+            }
+        ]
 
         self.next(self.train, foreach='configs')
 

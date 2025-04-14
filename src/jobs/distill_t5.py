@@ -24,7 +24,7 @@ from util.storage import upload_directory
 from utils import get_bad_word_ids
 from tqdm import tqdm
 class DistillTopicT5(TuneTopicT5):
-    def calculate_loss(self, student_outputs, teacher_outputs, labels):
+    def calculate_loss_custom(self, student_outputs, teacher_outputs, labels):
         temperature = 10 # was 20
         alpha = 0.7
 
@@ -46,6 +46,49 @@ class DistillTopicT5(TuneTopicT5):
         ) * distill_loss
 
         return loss
+
+    def calculate_loss(self, student_outputs, teacher_outputs, labels, alpha=0.9, temperature=2.0):
+        """
+        Computes the blended distillation + CE loss for seq2seq models.
+
+        Args:
+            student_outputs: ModelOutput from the student (includes logits)
+            teacher_outputs: ModelOutput from the teacher (includes logits)
+            labels: Ground-truth target token IDs (shape [batch, tgt_len])
+            alpha: Weight for distillation loss (vs. CE loss)
+            temperature: Softmax temperature
+            pad_token_id: Token to ignore in CE loss
+
+        Returns:
+            total_loss: Weighted sum of distillation and CE losses
+        """
+
+        student_logits = student_outputs.logits  # [batch, seq_len, vocab_size]
+        teacher_logits = teacher_outputs.logits
+
+        # === 1. Cross-Entropy Loss ===
+        ce_loss = F.cross_entropy(
+            student_logits.view(-1, student_logits.size(-1)),
+            labels.view(-1),
+            ignore_index=self.tokenizer.pad_token_id,
+            reduction='mean'
+        )
+
+        # === 2. KL Divergence Loss ===
+        student_log_probs = F.log_softmax(student_logits / temperature, dim=-1)
+        teacher_probs = F.softmax(teacher_logits / temperature, dim=-1)
+
+        # Compute KL loss (batchmean over all tokens)
+        kl_loss = F.kl_div(
+            student_log_probs,
+            teacher_probs,
+            reduction="batchmean"
+        ) * (temperature ** 2)  # scale loss back due to temperature
+
+        # === 3. Weighted Blend ===
+        total_loss = alpha * kl_loss + (1.0 - alpha) * ce_loss
+
+        return total_loss
 
     def train(self):
         torch.cuda.empty_cache()
@@ -69,7 +112,6 @@ class DistillTopicT5(TuneTopicT5):
 
         artifact = run.use_artifact(self.teacher_model_artifact, type='model')
         artifact_dir = artifact.download()
-
         teacher_model = T5ForConditionalGeneration.from_pretrained(artifact_dir)
         teacher_model.to(self.device)
 
