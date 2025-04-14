@@ -7,6 +7,7 @@ from metaflow.cards import Table
 
 import pandas as pd
 
+from distill_t5 import DistillTopicT5
 from tune_bart import TuneTopicBart
 from tune_t5 import TuneTopicT5
 from tune_gpt2 import TuneTopicGPT2
@@ -43,7 +44,10 @@ SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
 
 def create_trainer_for_config(config: dict[str, any]):
     if "t5" in config["model_name"]:
-        return TuneTopicT5(**config)
+        if config.get("teacher_model_artifact", None) is None:
+            return TuneTopicT5(**config)
+        else:
+            return DistillTopicT5(**config)
     if "gpt" in config["model_name"]:
         return TuneTopicGPT2(**config)
     if "bart" in config["model_name"]:
@@ -61,26 +65,15 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
         self.configs = [
             {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
+                "learning_rate": 5e-3,
+                "batch_size": 8,
+                "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
                 "shorten_training_label_boost": 0.08,
-                "shrink_decoder_index_remove": "5,4,3,2,1",
-            },
-            {
-                "learning_rate": 3e-4,
-                "batch_size": 2,
-                "model_name": "google/flan-t5-small",
-                "label_column": "output",
-                "use_keywords": True,
-                "single_tab_handling": False,
-                "learning_rate_decay": False,
-                "shorten_training_label_boost": 0.1,
-                "shrink_decoder_index_remove": "5,4,3,2,1",
+                "teacher_model_artifact": "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
             }
             ]
 
@@ -120,6 +113,7 @@ class TuneGenTopicModel(FlowSpec):
             print(f"Shortening labels with setting {shorten_boost}")
             stl = ShortenTopicLength(shorten_boost)
             topic_data = stl.shorten_topics(topic_data)
+
         topic_data = topic_data[topic_data["output"].str.len() <= LABEL_MAX_LENGTH]
         self.topic_data = topic_data
         current.card.append(

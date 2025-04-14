@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 from pydantic import BaseModel
 
@@ -38,10 +40,12 @@ class TuneTopicBase:
                  learning_rate_decay: bool = True, shrink_remove_encoder_layers: int = 0, shrink_remove_decoder_layers: int = 0,
                  shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, brevity_weight=None,
                  label_prefix=None,
-                 shorten_training_label_boost=None):
+                 shorten_training_label_boost=None,
+                 teacher_model_artifact=None):
         self.device = "cuda:0"
 
         self.model_name = model_name
+        self.teacher_model_artifact = teacher_model_artifact
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.label_column = label_column
@@ -97,7 +101,6 @@ class TuneTopicBase:
         result = eval.get_avg_scores(df, label_key="label", compare_column="compare")
         if prefix is not None:
             result = {f"{prefix}_{key}": value for key, value in result.items()}
-        wandb.log(result)
         return result
 
 if __name__ == '__main__':

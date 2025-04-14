@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 import pandas as pd
@@ -18,60 +19,6 @@ from transformers import (
 from util.storage import upload_directory
 from utils import get_bad_word_ids
 
-"""
-from weave import Model
-
-  @weave.op()
-            def predict(self, input_string: str) -> str:
-                output = self.scored_dataset[url]
-                return output
-
-            hallucination_scorer = HallucinationFreeScorer(
-                model_id="gpt-4o",
-                column_map={"context": "input", "output": "output"}
-            )
-
-            evaluation = weave.Evaluation(dataset=dataset, scorers=[quality_scorer, hallucination_scorer, summarization_scorer, toxicity_scorer, bias_scorer, fluency_scorer], name=model_choice)
-            asyncio.run(evaluation.evaluate(model))
-                    dataset = [
-            {'context': contexts.iloc[i], 'url': urls[i]}
-            for i in range(len(df))
-        ]
-"""
-
-def compute_eos_reward(logits, labels, eos_token_id):
-    probs = F.softmax(logits, dim=-1)  # Convert logits to probabilities
-    eos_probs = probs[:, :, eos_token_id]  # Extract EOS token probabilities
-    eos_mask = (labels == eos_token_id).float()  # Mask for true EOS positions
-    eos_reward = torch.sum(eos_probs * eos_mask) / (torch.sum(eos_mask) + 1e-8)  # Average EOS confidence
-    return -eos_reward
-
-
-def brevity_loss(logits, labels, eos_token_id, weight):
-    # Standard CrossEntropyLoss
-    ce_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1), ignore_index=-100)
-    eos_reward = compute_eos_reward(logits, labels, eos_token_id)
-    return ce_loss + eos_reward * weight
-
-
-class BrevityTrainer(Trainer):
-    def __init__(self, tokenizer=None, brevity_weight=0.3, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tokenizer = tokenizer  # Store tokenizer for loss function
-        self.eos_token_id = self.tokenizer("</s>").input_ids[0]
-        print(f"Brevity loss - Eos token {self.eos_token_id}")
-        self.brevity_weight = brevity_weight
-
-    def compute_loss(self, model, inputs, return_outputs=False):
-        """
-        Override default loss function.
-        """
-        labels = inputs.get("labels")
-        outputs = model(**inputs)
-        logits = outputs.logits  # Get model logits
-        loss = brevity_loss(logits, labels, self.eos_token_id,
-                            self.brevity_weight)
-        return (loss, outputs) if return_outputs else loss
 
 PROCESSED_COLUMN = "processed_label_column"
 
@@ -81,7 +28,7 @@ class TuneTopicT5(TuneTopicBase):
         targets = examples["target_text"]
         model_inputs = self.tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
         with self.tokenizer.as_target_tokenizer():
-            labels = self.tokenizer(targets, max_length=512, truncation=True, padding="max_length")
+            labels = self.tokenizer(targets, max_length=64, truncation=True, padding="max_length")
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
 
@@ -200,22 +147,13 @@ class TuneTopicT5(TuneTopicBase):
                 save_strategy="epoch",
                 warmup_ratio=0.05)
 
-        if self.brevity_weight is not None and self.brevity_weight > 0.0:
-            trainer = BrevityTrainer(
-                tokenizer=self.tokenizer,
-                model=self.model,
-                args=training_args,
-                train_dataset=tokenized_training_dataset,
-                eval_dataset=tokenized_training_dataset,
-                brevity_weight=self.brevity_weight
-            )
-        else:
-            trainer = Trainer(
-                model=self.model,
-                args=training_args,
-                train_dataset=tokenized_training_dataset,
-                eval_dataset=tokenized_training_dataset
-            )
+
+        trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=tokenized_training_dataset,
+            eval_dataset=tokenized_training_dataset
+        )
 
         do_first_run = True # We were testing skipping the first run but got bad results
 
@@ -284,25 +222,7 @@ class TuneTopicT5(TuneTopicBase):
         self.model = None
         torch.cuda.empty_cache()
 
-    def relabel_probabilities(self, dataset, prob_limit=0.1, new_label="None"):
-        def relabel(item):
-            input_text = item["target_text"]
-            input_encodings = self.tokenizer(input_text, return_tensors="pt", truncation=True, padding=True)
-            input_ids = input_encodings["input_ids"].to(self.device)
-            outputs = self.model.generate(
-                input_ids, output_scores=True, max_length=30, num_return_sequences=1, return_dict_in_generate=True
-            )
-            probs = torch.softmax(outputs.scores[0], dim=-1)
-            max_prob, _ = torch.max(probs, dim=-1)
-            return {"target_text": new_label if max_prob < prob_limit else item["target_text"], **item}
-
-        dataset = dataset.map(relabel, batched=False)  # Ensure batched=False is explicitly set
-
-        found = sum(1 for item in dataset if item["target_text"] == new_label)
-        print(f"Test relabel dataset: {found} out of {len(dataset)} items relabeled to {new_label}")
-        return dataset
-
-    def run_eval(self, eval_dataset, name="Eval", prefix=None):
+    def run_eval(self, eval_dataset, name="Eval", prefix=None, log_wandb=True):
         results_labels = []
         results_output = []
         losses = []
@@ -330,19 +250,23 @@ class TuneTopicT5(TuneTopicBase):
             results_labels.append(label)
             losses.append(loss)
 
-        self.compute_metrics_text(results_output, results_labels, prefix=prefix)
-        table = wandb.Table(
-            columns=["input", "label", "prediction", "loss"],
-            data=list(
-                zip(
-                    [d["input_text"] for d in eval_dataset],
-                    results_labels,
-                    results_output,
-                    losses
-                )
-            ),
-        )
-        wandb.log({f"{name} Set": table})
+        metrics = self.compute_metrics_text(results_output, results_labels, prefix=prefix)
+        if (log_wandb):
+            wandb.log(metrics)
+            table = wandb.Table(
+                columns=["input", "label", "prediction", "loss"],
+                data=list(
+                    zip(
+                        [d["input_text"] for d in eval_dataset],
+                        results_labels,
+                        results_output,
+                        losses
+                    )
+                ),
+            )
+            wandb.log({f"{name} Set": table})
+        else:
+            print(f"{name} stats {json.dumps(metrics)}")
 
 
 if __name__ == '__main__':
