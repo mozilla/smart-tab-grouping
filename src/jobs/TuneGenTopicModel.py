@@ -2,11 +2,9 @@ from metaflow import (
     FlowSpec,
     step,
     card,
-    current, resources, kubernetes)
+    current, resources, kubernetes, nvidia, conda)
 from metaflow.cards import Table
-
 import pandas as pd
-
 from distill_t5 import DistillTopicT5
 from tune_bart import TuneTopicBart
 from tune_t5 import TuneTopicT5
@@ -63,22 +61,43 @@ class TuneGenTopicModel(FlowSpec):
     This model is used for the Smart Tab Grouping project
     """
 
+    @nvidia()
+    @conda(python='3.11.9',
+           libraries={
+               'pandas': '1.5.3',
+               'numpy': '1.26.4',
+               'nltk': '3.9.1',
+               'transformers': '4.40.2',
+               'tqdm': '4.66.5',
+               "pytorch::pytorch-cuda": "12.4",
+               "pytorch::pytorch": "2.4.0",
+               'scikit-learn': '1.5.1',
+               'datasets': '2.19.2',
+               'wandb': '0.16.6',
+               'pydantic': '2.8.2',
+               'conda-forge::sentencepiece': '0.2.0',
+               'conda-forge::google-cloud-storage': '3.1.0',
+               'conda-forge::pyspellchecker': '0.8.0',
+               'conda-forge::google-cloud-secret-manager': '2.23.2',
+               'conda-forge::rouge-score': '0.1.2',
+               'conda-forge::python-dotenv': '1.1.0'
+           })
     @step
     def start(self):
         self.configs = [
             {
                 "learning_rate": 1e-4,
-                "batch_size": 8,
+                "batch_size": 16,
                 "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
                 "shorten_training_label_boost": 0.05,
-                "teacher_model_artifact": "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
+                "teacher_model_artifact": "moso/tab_grouping/model-9lc3togr:v0" # azure-frost-334 ___ "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
             }
             ]
-        self.configs = [
+        self._skip_configs = [
             {
                     "learning_rate": 3e-4,
                     "batch_size": 2,
@@ -93,13 +112,27 @@ class TuneGenTopicModel(FlowSpec):
 
         self.next(self.train, foreach='configs')
 
-    @kubernetes(image="us-docker.pkg.dev/moz-fx-mozsoc-ml-nonprod/metaflow-dockers/metaflow_gpu:onnx2",
-                gpu_vendor="nvidia",
-                gpu=1,
-                memory=10240,
-                disk=20240,
-                cpu=2,
-                )
+    @nvidia()
+    @conda(python='3.11.9',
+           libraries={
+               'pandas': '1.5.3',
+               'numpy': '1.26.4',
+               'nltk': '3.9.1',
+               'transformers': '4.40.2',
+               'tqdm': '4.66.5',
+               "pytorch::pytorch-cuda": "12.4",
+               "pytorch::pytorch": "2.4.0",
+               'scikit-learn': '1.5.1',
+               'datasets': '2.19.2',
+               'wandb': '0.16.6',
+               'pydantic': '2.8.2',
+               'conda-forge::sentencepiece': '0.2.0',
+               'conda-forge::google-cloud-storage': '3.1.0',
+               'conda-forge::pyspellchecker': '0.8.0',
+               'conda-forge::google-cloud-secret-manager': '2.23.2',
+               'conda-forge::rouge-score': '0.1.2',
+               'conda-forge::python-dotenv': '1.1.0'
+           })
     @card
     @step
     def train(self):
@@ -112,13 +145,13 @@ class TuneGenTopicModel(FlowSpec):
         print(train_config)
         trainer = create_trainer_for_config(train_config)
         local_filename = "tuning_data.csv"
-        training_files = TUNING_DATA_PATHS_WITH_NONE
+        training_files = TUNING_DATA_PATHS
         print(f"Using training files {training_files}")
         datasets = []
         for training_file in training_files:
             download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
             datasets.append(pd.read_csv(local_filename, keep_default_na=False).fillna(""))
-        datasets[NOISE_TRAINING_DATA_SET_INDEX] = datasets[NOISE_TRAINING_DATA_SET_INDEX].sample(n=500).reset_index(drop=True)  # reduce number a bit of None set
+        #datasets[NOISE_TRAINING_DATA_SET_INDEX] = datasets[NOISE_TRAINING_DATA_SET_INDEX].sample(n=500).reset_index(drop=True)  # reduce number a bit of None set
 
         topic_data = pd.concat(datasets, ignore_index=True).fillna("")
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
