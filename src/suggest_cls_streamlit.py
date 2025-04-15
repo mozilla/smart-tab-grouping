@@ -6,6 +6,81 @@ import os
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
+import re
+from urllib.parse import urlparse, parse_qs
+
+PREPROCESS = True
+
+def preprocess_text(text: str) -> str:
+    """
+    Process the input text by splitting on a delimiter pattern, then conditionally removing
+    a trailing chunk (assumed to be domain-related) if it meets specific criteria.
+
+    The delimiter matches one or more of the characters in [|, –, -] when they are surrounded by
+    whitespace. For example: "Example - Domain" or "Example | Domain".
+
+    Args:
+        text (str): The text to be processed.
+
+    Returns:
+        str: The processed text or the original text if the conditions are not met.
+    """
+    if not PREPROCESS: return text
+
+    # Regex pattern: matches one or more delimiters (|, – or -) between spaces.
+    delimiters = r"(?<=\s)[|–-]+(?=\s)"
+    # Split the text using the regex delimiter
+    split_text = re.split(delimiters, text)
+
+    # Ensure there is enough info from the text excluding the last part.
+    # Joining all but the last element should result in a string longer than 5 characters.
+    has_enough_info = len(split_text) > 0 and len(" ".join(split_text[:-1])) > 5
+
+    # In our context, the last part (potential domain information) should be short (< 20 characters)
+    # and there should be more than one segment after splitting.
+    is_potential_domain_info = len(split_text) > 1 and len(split_text[-1]) < 20
+
+    # If both conditions are met, process and return the cleaned text (excluding the last element).
+    if has_enough_info and is_potential_domain_info:
+        # Strip whitespace from each chunk, filter out empty strings, join them with a space,
+        # and trim any leading/trailing spaces.
+        processed = " ".join(chunk.strip() for chunk in split_text[:-1] if chunk.strip()).strip()
+        return processed
+
+    # Otherwise, just return the original text.
+    return text
+
+
+def preprocess_url(url):
+    if not PREPROCESS: return url
+
+    parsed = urlparse(url)
+    tracking_keys = {"utm_source", "utm_medium", "utm_campaign", "ref"}
+    query_dict = {
+        k: v for k, v in parse_qs(parsed.query).items() if k not in tracking_keys
+    }
+
+    # Flatten query parameters like {"id": ["123"]} => ["id=123"]
+    query_items = []
+    for k, vals in query_dict.items():
+        for val in vals:
+            query_items.append(f"{k}={val}")
+
+    domain = parsed.netloc.replace("www.", "")
+    path_str = "/".join(p for p in parsed.path.split("/") if p)
+
+    parts = []
+    if domain:
+        parts.append(domain)
+    if path_str:
+        parts.append(path_str)
+    parts.extend(query_items)
+    if parsed.fragment:
+        parts.append(parsed.fragment)
+
+    return " ".join(parts).replace(".html", "")
+
+
 # -------------
 # The classification code
 # -------------
@@ -26,7 +101,8 @@ def get_classifications(window, anchors, embedding_model, classifier_params, thr
     threshold: float in [0,1]
     """
 
-    window_titles = window['titles']
+    anchors = [preprocess_text(a) for a in anchors]
+    window_titles = [preprocess_text(t) for t in window['titles']]
     # Convert anchor titles to indices
     anchor_indices = [window_titles.index(a) for a in anchors]
     anchor_group_name = window['group_name'][anchor_indices[0]]
@@ -234,7 +310,7 @@ def main():
         styled_df = df.style.apply(classification_row_style, axis=1)
 
         # Make the DataFrame bigger: set width & height explicitly
-        st.dataframe(styled_df, width=1200, height=800)
+        st.dataframe(styled_df, width=1500, height=500)
 
         # Classification counts
         classification_counts = df["Classification"].value_counts()
