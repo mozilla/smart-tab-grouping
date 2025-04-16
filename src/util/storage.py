@@ -7,8 +7,6 @@ import pandas as pd
 def download_bucket_to_file(bucket_name, blob_path, destination_file_name):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
-    print("****")
-    print(blob_path)
     blob = bucket.blob(blob_path)
     blob.download_to_filename(destination_file_name)
 

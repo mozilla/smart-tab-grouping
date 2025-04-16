@@ -37,6 +37,9 @@ TUNING_DATA_PATHS_WITH_NONE = ["topic/fine_tuning_data__with_none__common_crawl_
                                "topic/search_simplified.csv"
                                ]
 
+UNLABELED_DATA_PATHS = ["topic/common_crawl_unlableled_00000.csv", "topic/common_crawl_unlableled_00002.csv", "topic/common_crawl_unlableled_00003.csv"
+                        "topic/common_crawl_unlableled_00004.csv", "topic/common_crawl_unlableled_00005.csv"]
+
 NOISE_TRAINING_DATA_SET_INDEX = 1
 
 SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
@@ -86,7 +89,7 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
         self.configs = [
             {
-                "learning_rate": 1e-4,
+                "learning_rate": 2e-4,
                 "batch_size": 16,
                 "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
@@ -94,7 +97,9 @@ class TuneGenTopicModel(FlowSpec):
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
                 "shorten_training_label_boost": 0.05,
-                "teacher_model_artifact": "moso/tab_grouping/model-9lc3togr:v0" # azure-frost-334 ___ "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
+                "teacher_model_artifact": "moso/tab_grouping/model-9lc3togr:v0", # azure-frost-334 ___ "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
+                "shrink_encoder_index_remove": "1,3",
+                "shrink_decoder_index_remove": "1,3",
             }
             ]
         self._skip_configs = [
@@ -145,16 +150,24 @@ class TuneGenTopicModel(FlowSpec):
         print(train_config)
         trainer = create_trainer_for_config(train_config)
         local_filename = "tuning_data.csv"
-        training_files = TUNING_DATA_PATHS
-        print(f"Using training files {training_files}")
-        datasets = []
-        for training_file in training_files:
-            download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
-            datasets.append(pd.read_csv(local_filename, keep_default_na=False).fillna(""))
+        def get_datasets(files):
+            datasets = []
+            print(f"Loading files files {files}")
+            for training_file in files:
+                download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
+                datasets.append(pd.read_csv(local_filename, keep_default_na=False).fillna(""))
+            df = pd.concat(datasets, ignore_index=True).fillna("")
+            return df
+
         #datasets[NOISE_TRAINING_DATA_SET_INDEX] = datasets[NOISE_TRAINING_DATA_SET_INDEX].sample(n=500).reset_index(drop=True)  # reduce number a bit of None set
 
-        topic_data = pd.concat(datasets, ignore_index=True).fillna("")
+        topic_data = get_datasets(TUNING_DATA_PATHS)
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
+
+        unlabeled_data = get_datasets(UNLABELED_DATA_PATHS)
+        unlabeled_data["input_titles"] = unlabeled_data["titles"]
+        unlabeled_data = unlabeled_data.drop_duplicates(subset=["input_titles"]).reset_index(drop=True)
+
         shorten_boost = train_config.get("shorten_training_label_boost", None)
         if shorten_boost is not None:
             print(f"Shortening labels with setting {shorten_boost}")
@@ -169,7 +182,7 @@ class TuneGenTopicModel(FlowSpec):
             )
         )
         validation_data = download_bucket_to_csv(TAB_GROUPING_BUCKET_NAME, SINGLE_TAB_VALIDATION_PATH)
-        trainer.setup_data(topic_data, validation_data)
+        trainer.setup_data(topic_data, validation=validation_data, unlabeled=unlabeled_data)
 
         trainer.train()
         self.next(self.join)

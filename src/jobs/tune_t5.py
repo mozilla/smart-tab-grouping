@@ -23,43 +23,69 @@ from utils import get_bad_word_ids
 PROCESSED_COLUMN = "processed_label_column"
 
 class TuneTopicT5(TuneTopicBase):
-    def preprocess_function(self, examples):
+    def preprocess_function(self, examples, teacher_model=None):
         inputs = examples["input_text"]
-        targets = examples["target_text"]
-        model_inputs = self.tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
-        with self.tokenizer.as_target_tokenizer():
-            labels = self.tokenizer(targets, max_length=64, truncation=True, padding="max_length")
-        model_inputs["labels"] = labels["input_ids"]
-        return model_inputs
+        model_inputs = self.tokenizer(
+            inputs,
+            max_length=512,
+            truncation=True,
+            padding="max_length"
+        )
+        if teacher_model is None:
+            targets = examples["target_text"]
+            with self.tokenizer.as_target_tokenizer():
+                targets_tokenized = self.tokenizer(
+                    targets,
+                    max_length=64,
+                    truncation=True,
+                    padding="max_length"
+                )
+            labels = targets_tokenized["input_ids"]
+        else:
+            generated_ids = teacher_model.generate(
+                self.tokenizer(inputs, return_tensors="pt", padding=True, truncation=True).input_ids,
+                max_length=64
+            )
+            decoded_outputs = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            with self.tokenizer.as_target_tokenizer():
+                tokenized_labels = self.tokenizer(
+                    decoded_outputs,
+                    max_length=64,
+                    truncation=True,
+                    padding="max_length"
+                )
+            labels = tokenized_labels["input_ids"]
+        # not sure if this is needed.
+#        labels = [
+#            [(token if token != self.tokenizer.pad_token_id else -100) for token in label_seq]
+#            for label_seq in labels
+#        ]
+        model_inputs["labels"] = labels
 
-    def setup_data(self, topic_data: pd.DataFrame, validation_data: pd.DataFrame, filename: str = "unknown"):
+        return model_inputs
+    def prep_dataframe(self, data_df):
+        data_df.input_keywords = data_df.input_keywords.fillna("")
+        data_df[INPUT_PROMPT_ID] = data_df.apply(
+            lambda row: self.prompter.generate_prompt(row.input_titles, row.input_keywords), axis=1)
+        if self.label_prefix is not None:
+            data_df[PROCESSED_COLUMN] = self.label_prefix + data_df[self.label_column]
+        return data_df.reset_index(drop=True)
+
+    def setup_data(self, topic_data: pd.DataFrame, validation: pd.DataFrame, filename: str = "unknown"):
         self.filename = filename
         self.tokenizer = T5Tokenizer.from_pretrained(self.model_name)
         self.model = T5ForConditionalGeneration.from_pretrained(self.model_name)
-
-        topic_data.input_keywords = topic_data.input_keywords.fillna("")
-        topic_data[INPUT_PROMPT_ID] = topic_data.apply(
-            lambda row: self.prompter.generate_prompt(row.input_titles, row.input_keywords), axis=1)
-
+        topic_data = self.prep_dataframe(topic_data)
+        validation = self.prep_dataframe(validation)
         if self.label_prefix is not None:
-            topic_data[PROCESSED_COLUMN] = self.label_prefix + topic_data[self.label_column]
-
-        validation_data.input_keywords = validation_data.input_keywords.fillna("")
-        validation_data[INPUT_PROMPT_ID] = validation_data.apply(
-            lambda row: self.prompter.generate_prompt(row.input_titles, row.input_keywords), axis=1)
-
-        if self.label_prefix is not None:
-            validation_data[PROCESSED_COLUMN] = self.label_prefix + validation_data[self.label_column]
             self.label_column = PROCESSED_COLUMN
-
         topic_data_training, topic_data_eval = train_test_split(topic_data, test_size=0.2)
-
         train_data_dict = {"input_text": topic_data_training[INPUT_PROMPT_ID].to_list(),
                            "target_text": topic_data_training[self.label_column].to_list()}
         eval_data_dict = {"input_text": topic_data_eval[INPUT_PROMPT_ID].to_list(),
                           "target_text": topic_data_eval[self.label_column].to_list()}
-        validation_data_dict = {"input_text": validation_data[INPUT_PROMPT_ID].to_list(),
-                                "target_text": validation_data[self.label_column].to_list()}
+        validation_data_dict = {"input_text": validation[INPUT_PROMPT_ID].to_list(),
+                                "target_text": validation[self.label_column].to_list()}
 
         self.train_dataset = Dataset.from_pandas(pd.DataFrame(train_data_dict))
         self.eval_dataset = Dataset.from_pandas(pd.DataFrame(eval_data_dict))
@@ -69,7 +95,7 @@ class TuneTopicT5(TuneTopicBase):
         print(f"Eval Dataset size {len(self.eval_dataset)}")
         print(f"Validation Dataset size {len(self.validation_dataset)}")
 
-    def shrink_remove_layers(self, model, layer_name, new_size=None, layers_to_remove=None):
+    def shrink_remove_layers(self, model, layer_name, layers_to_remove=None):
         """
         Note that new_size is supposed indicate the new size but it isn't exactly accurate
         This function needs to be updated
@@ -79,14 +105,8 @@ class TuneTopicT5(TuneTopicBase):
         else:
             config_name = f"num_{layer_name}_layers"
         current_size = getattr(model.config, config_name)
-        if layers_to_remove is None:
-            if new_size is None:
-                new_size = int(current_size / 2)
-            if current_size != new_size:
-                remove_list = [i for i in range(1, new_size * 2, 2)]
-        else:
-            remove_list = list(map(int, layers_to_remove.split(",")))
-            remove_list.sort()
+        remove_list = list(map(int, layers_to_remove.split(",")))
+        remove_list.sort()
         for i in reversed(remove_list):
             print(f"removing layer {layer_name} {i}")
             del getattr(model, layer_name).block[i]
@@ -176,22 +196,12 @@ class TuneTopicT5(TuneTopicBase):
                                       self.shrink_decoder_index_remove)
         if has_second_train_run:
             training_args.num_train_epochs = 1 if do_first_run else 3
-            if self.brevity_weight is not None and self.brevity_weight > 0.0:
-                trainer = BrevityTrainer(
-                    tokenizer=self.tokenizer,
-                    model=self.model,
-                    args=training_args,
-                    train_dataset=tokenized_training_dataset,
-                    eval_dataset=tokenized_training_dataset,
-                    brevity_weight=self.brevity_weight
-                )
-            else:
-                trainer = Trainer(
-                    model=self.model,
-                    args=training_args,
-                    train_dataset=tokenized_training_dataset,
-                    eval_dataset=tokenized_training_dataset
-                )
+            trainer = Trainer(
+                model=self.model,
+                args=training_args,
+                train_dataset=tokenized_training_dataset,
+                eval_dataset=tokenized_training_dataset
+            )
             trainer.train()
             name_prefix = "Post Remove"
             dataset_prefix = "post_remove"

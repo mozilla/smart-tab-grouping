@@ -1,15 +1,15 @@
 import os
 from datetime import datetime
+from functools import partial
 
 import numpy as np
 import pandas as pd
 import wandb
 from torch.utils.data import DataLoader
-
 from tune_t5 import TuneTopicT5
 from tune_base import TuneTopicBase, INPUT_PROMPT_ID, keyword_prompt
 import torch
-from datasets import Dataset
+from datasets import concatenate_datasets, Dataset
 from sklearn.model_selection import train_test_split
 import torch.nn.functional as F
 from torch.nn.functional import log_softmax, softmax
@@ -23,29 +23,9 @@ from transformers import (
 from util.storage import upload_directory
 from utils import get_bad_word_ids
 from tqdm import tqdm
+
+
 class DistillTopicT5(TuneTopicT5):
-    def calculate_loss_custom(self, student_outputs, teacher_outputs, labels):
-        temperature = 10 # was 20
-        alpha = 0.7
-
-        s_logits = student_outputs.logits
-        t_logits = teacher_outputs.logits
-
-        vocab_size = s_logits.size(-1)
-        ce_logits = s_logits.view(-1, vocab_size)
-        ce_labels = labels.view(-1)
-        ce_loss = torch.nn.functional.cross_entropy(ce_logits, ce_labels)
-        student_log_probs = log_softmax(s_logits.view(-1, vocab_size) / temperature, dim=-1)
-        teacher_probs = softmax(t_logits.view(-1, vocab_size) / temperature, dim=-1)
-
-        distill_loss = torch.nn.functional.kl_div(
-            student_log_probs, teacher_probs, reduction="batchmean"
-        )
-        loss = (1 - alpha) * ce_loss + (
-                alpha * temperature ** 2 / self.batch_size ** 2
-        ) * distill_loss
-
-        return loss
 
     def calculate_loss(self, student_outputs, teacher_outputs, labels, alpha=0.9, temperature=2.0):
         """
@@ -57,7 +37,6 @@ class DistillTopicT5(TuneTopicT5):
             labels: Ground-truth target token IDs (shape [batch, tgt_len])
             alpha: Weight for distillation loss (vs. CE loss)
             temperature: Softmax temperature
-            pad_token_id: Token to ignore in CE loss
 
         Returns:
             total_loss: Weighted sum of distillation and CE losses
@@ -66,7 +45,6 @@ class DistillTopicT5(TuneTopicT5):
         student_logits = student_outputs.logits  # [batch, seq_len, vocab_size]
         teacher_logits = teacher_outputs.logits
 
-        # === 1. Cross-Entropy Loss ===
         ce_loss = F.cross_entropy(
             student_logits.view(-1, student_logits.size(-1)),
             labels.view(-1),
@@ -74,7 +52,6 @@ class DistillTopicT5(TuneTopicT5):
             reduction='mean'
         )
 
-        # === 2. KL Divergence Loss ===
         student_log_probs = F.log_softmax(student_logits / temperature, dim=-1)
         teacher_probs = F.softmax(teacher_logits / temperature, dim=-1)
 
@@ -85,10 +62,19 @@ class DistillTopicT5(TuneTopicT5):
             reduction="batchmean"
         ) * (temperature ** 2)  # scale loss back due to temperature
 
-        # === 3. Weighted Blend ===
         total_loss = alpha * kl_loss + (1.0 - alpha) * ce_loss
 
         return total_loss
+
+    def setup_data(self, topic_data: pd.DataFrame, validation: pd.DataFrame, unlabeled=None,
+                   filename: str = "unknown"):
+        unlabeled_data = self.prep_dataframe(unlabeled)
+        unlabeled_data_dict = {"input_text": unlabeled_data[INPUT_PROMPT_ID].to_list(),
+                                "target_text": unlabeled_data[self.label_column].to_list()}
+
+        self.unlabeled_dataset = Dataset.from_pandas(pd.DataFrame(unlabeled_data_dict))
+        print(f"Unlabeled Dataset size {len(self.unlabeled_dataset)}")
+        super().setup_data(topic_data, validation, filename=filename)
 
     def train(self):
         torch.cuda.empty_cache()
@@ -96,17 +82,22 @@ class DistillTopicT5(TuneTopicT5):
         if self.teacher_model_artifact is None:
             raise Exception("Teacher model is missing")
 
+        if self.shrink_encoder_index_remove or self.shrink_decoder_index_remove:
+            self.shrink_remove_layers(self.model, "encoder",
+                                      self.shrink_encoder_index_remove)
+            self.shrink_remove_layers(self.model, "decoder",
+                                      self.shrink_decoder_index_remove)
 
         os.environ["WANDB_LOG_MODEL"] = "end"  # save the model to WandB
         run = wandb.init(project="tab_grouping_distillation",
-                   config={"learning_rate": self.learning_rate, "batch_size": self.batch_size,
-                           "model_name": self.model_name,
-                           "teacher_model_artifact": self.teacher_model_artifact,
-                           "label_column": self.label_column,
-                           "use_keywords": self.use_keywords,
-                           "learning_rate_decay": self.learning_rate_decay,
-                           "single_tab_handling": self.single_tab_handling,
-                           "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename})
+                         config={"learning_rate": self.learning_rate, "batch_size": self.batch_size,
+                                 "model_name": self.model_name,
+                                 "teacher_model_artifact": self.teacher_model_artifact,
+                                 "label_column": self.label_column,
+                                 "use_keywords": self.use_keywords,
+                                 "learning_rate_decay": self.learning_rate_decay,
+                                 "single_tab_handling": self.single_tab_handling,
+                                 "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename})
         print(f"W&B Run ID: {wandb.run.id}")
         print(f"W&B Run Name: {wandb.run.name}")
 
@@ -115,7 +106,13 @@ class DistillTopicT5(TuneTopicT5):
         teacher_model = T5ForConditionalGeneration.from_pretrained(artifact_dir)
         teacher_model.to(self.device)
 
+        # we generate targets here
+        tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher=teacher_model), batched=True)
+
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
+        # combine
+        tokenized_training_dataset = concatenate_datasets[tokenized_unlabeled_dataset, tokenized_training_dataset]
+
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
         def add_decoder_ids(item_input_dict):
@@ -128,7 +125,7 @@ class DistillTopicT5(TuneTopicT5):
             type="torch", columns=["input_ids", "attention_mask", "labels", "decoder_input_ids"]
         )
 
-        num_epochs = 10
+        num_epochs = 30
 
         self.model.generation_config.update(bad_words_ids=None)
 
@@ -176,12 +173,13 @@ class DistillTopicT5(TuneTopicT5):
                 if batch_index % 10 == 0:
                     wandb.log({"cur_loss": loss_val})
                     progress_bar.set_postfix(loss_value=loss_val)
-            avg_loss = running_loss/batch_index
+            avg_loss = running_loss / batch_index
             wandb.log({"train_loss": avg_loss})
 
             print(f"Average Loss at epoch {epoch}:{avg_loss}")
             self.run_eval(tokenized_eval_dataset, log_wandb=False)
-            self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val", log_wandb=False)
+            self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val",
+                          log_wandb=False)
 
         print(f"**** DISTILLATION COMPLETE")
         self.run_eval(tokenized_eval_dataset)
