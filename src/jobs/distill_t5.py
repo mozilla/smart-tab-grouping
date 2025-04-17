@@ -69,8 +69,8 @@ class DistillTopicT5(TuneTopicT5):
     def setup_data(self, topic_data: pd.DataFrame, validation: pd.DataFrame, unlabeled=None,
                    filename: str = "unknown"):
         unlabeled_data = self.prep_dataframe(unlabeled)
-        unlabeled_data_dict = {"input_text": unlabeled_data[INPUT_PROMPT_ID].to_list(),
-                                "target_text": unlabeled_data[self.label_column].to_list()}
+
+        unlabeled_data_dict = {"input_text": unlabeled_data[INPUT_PROMPT_ID].to_list()}
 
         self.unlabeled_dataset = Dataset.from_pandas(pd.DataFrame(unlabeled_data_dict))
         print(f"Unlabeled Dataset size {len(self.unlabeled_dataset)}")
@@ -104,15 +104,14 @@ class DistillTopicT5(TuneTopicT5):
         artifact = run.use_artifact(self.teacher_model_artifact, type='model')
         artifact_dir = artifact.download()
         teacher_model = T5ForConditionalGeneration.from_pretrained(artifact_dir)
+        teacher_model.resize_token_embeddings(len(self.tokenizer))
         teacher_model.to(self.device)
 
         # we generate targets here
-        tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher=teacher_model), batched=True)
-
+        tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher_model=teacher_model), batched=True)
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
         # combine
-        tokenized_training_dataset = concatenate_datasets[tokenized_unlabeled_dataset, tokenized_training_dataset]
-
+        tokenized_training_dataset = concatenate_datasets([tokenized_unlabeled_dataset, tokenized_training_dataset])
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
         def add_decoder_ids(item_input_dict):
@@ -141,16 +140,13 @@ class DistillTopicT5(TuneTopicT5):
 
         # clamp embeddings to what the tokenizer actually supports
         self.model.resize_token_embeddings(len(self.tokenizer))
-        teacher_model.resize_token_embeddings(len(self.tokenizer))
-
         # Training Loop
         for epoch in range(num_epochs):
             self.model.train()
-
-            progress_bar = tqdm(train_loader, desc=f"Epoch {epoch}")
+            print(f"Epoch {epoch}")
             batch_index = 0
             running_loss = 0.0
-            for batch in progress_bar:
+            for batch in train_loader:
                 optimizer.zero_grad()
 
                 batch = dict([(k, v.to(self.device)) for k, v in batch.items()])
@@ -170,9 +166,9 @@ class DistillTopicT5(TuneTopicT5):
                 batch_index += 1
                 loss_val = loss.item()
                 running_loss += loss_val
-                if batch_index % 10 == 0:
+                if batch_index % 50 == 0:
                     wandb.log({"cur_loss": loss_val})
-                    progress_bar.set_postfix(loss_value=loss_val)
+#                    progress_bar.set_postfix(loss_value=loss_val)
             avg_loss = running_loss / batch_index
             wandb.log({"train_loss": avg_loss})
 

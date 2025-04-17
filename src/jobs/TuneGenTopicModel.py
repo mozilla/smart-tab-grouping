@@ -37,8 +37,8 @@ TUNING_DATA_PATHS_WITH_NONE = ["topic/fine_tuning_data__with_none__common_crawl_
                                "topic/search_simplified.csv"
                                ]
 
-UNLABELED_DATA_PATHS = ["topic/common_crawl_unlableled_00000.csv", "topic/common_crawl_unlableled_00002.csv", "topic/common_crawl_unlableled_00003.csv"
-                        "topic/common_crawl_unlableled_00004.csv", "topic/common_crawl_unlableled_00005.csv"]
+UNLABELED_DATA_PATHS = ["topic/common_crawl_unlabeled_00000.csv", "topic/common_crawl_unlabeled_00002.csv", "topic/common_crawl_unlableled_00003.csv",
+                        "topic/common_crawl_unlabeled_00004.csv", "topic/common_crawl_unlabeled_00005.csv"]
 
 NOISE_TRAINING_DATA_SET_INDEX = 1
 
@@ -89,8 +89,8 @@ class TuneGenTopicModel(FlowSpec):
     def start(self):
         self.configs = [
             {
-                "learning_rate": 2e-4,
-                "batch_size": 16,
+                "learning_rate": 4e-4,
+                "batch_size": 32,
                 "model_name": "google/t5-efficient-tiny",
                 "label_column": "output",
                 "use_keywords": True,
@@ -165,7 +165,8 @@ class TuneGenTopicModel(FlowSpec):
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
 
         unlabeled_data = get_datasets(UNLABELED_DATA_PATHS)
-        unlabeled_data["input_titles"] = unlabeled_data["titles"]
+        unlabeled_data.loc[:, "input_keywords"] = ""
+        unlabeled_data["input_titles"] = unlabeled_data["title"]
         unlabeled_data = unlabeled_data.drop_duplicates(subset=["input_titles"]).reset_index(drop=True)
 
         shorten_boost = train_config.get("shorten_training_label_boost", None)
@@ -182,7 +183,9 @@ class TuneGenTopicModel(FlowSpec):
             )
         )
         validation_data = download_bucket_to_csv(TAB_GROUPING_BUCKET_NAME, SINGLE_TAB_VALIDATION_PATH)
-        trainer.setup_data(topic_data, validation=validation_data, unlabeled=unlabeled_data)
+        trainer.setup_data(topic_data,
+                           validation=validation_data,
+                           unlabeled=unlabeled_data)
 
         trainer.train()
         self.next(self.join)

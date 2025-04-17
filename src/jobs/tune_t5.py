@@ -43,10 +43,11 @@ class TuneTopicT5(TuneTopicBase):
             labels = targets_tokenized["input_ids"]
         else:
             generated_ids = teacher_model.generate(
-                self.tokenizer(inputs, return_tensors="pt", padding=True, truncation=True).input_ids,
+                self.tokenizer(inputs, return_tensors="pt", padding=True, truncation=True).input_ids.to(self.device),
                 max_length=64
-            )
+            ).to("cpu")
             decoded_outputs = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            print(f"Sample of decoded outputs from Unlabeled Dataset {decoded_outputs[:20]}")
             with self.tokenizer.as_target_tokenizer():
                 tokenized_labels = self.tokenizer(
                     decoded_outputs,
@@ -56,7 +57,7 @@ class TuneTopicT5(TuneTopicBase):
                 )
             labels = tokenized_labels["input_ids"]
         # not sure if this is needed.
-#        labels = [
+    #        labels = [
 #            [(token if token != self.tokenizer.pad_token_id else -100) for token in label_seq]
 #            for label_seq in labels
 #        ]
