@@ -68,12 +68,13 @@ class DistillTopicT5(TuneTopicT5):
 
     def setup_data(self, topic_data: pd.DataFrame, validation: pd.DataFrame, unlabeled=None,
                    filename: str = "unknown"):
-        unlabeled_data = self.prep_dataframe(unlabeled)
-
-        unlabeled_data_dict = {"input_text": unlabeled_data[INPUT_PROMPT_ID].to_list()}
-
-        self.unlabeled_dataset = Dataset.from_pandas(pd.DataFrame(unlabeled_data_dict))
-        print(f"Unlabeled Dataset size {len(self.unlabeled_dataset)}")
+        if unlabeled is not None:
+            unlabeled_data = self.prep_dataframe(unlabeled)
+            unlabeled_data_dict = {"input_text": unlabeled_data[INPUT_PROMPT_ID].to_list()}
+            self.unlabeled_dataset = Dataset.from_pandas(pd.DataFrame(unlabeled_data_dict))
+            print(f"Unlabeled Dataset size {len(self.unlabeled_dataset)}")
+        else:
+            self.unlabeled_dataset = None
         super().setup_data(topic_data, validation, filename=filename)
 
     def train(self):
@@ -108,10 +109,12 @@ class DistillTopicT5(TuneTopicT5):
         teacher_model.to(self.device)
 
         # we generate targets here
-        tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher_model=teacher_model), batched=True)
+        if self.unlabeled_dataset is not None:
+            tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher_model=teacher_model), batched=True)
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
-        # combine
-        tokenized_training_dataset = concatenate_datasets([tokenized_unlabeled_dataset, tokenized_training_dataset])
+        if self.unlabeled_dataset is not None:
+            # combine
+            tokenized_training_dataset = concatenate_datasets([tokenized_unlabeled_dataset, tokenized_training_dataset])
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
         def add_decoder_ids(item_input_dict):

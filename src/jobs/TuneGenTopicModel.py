@@ -98,7 +98,7 @@ class TuneGenTopicModel(FlowSpec):
                 "learning_rate_decay": False,
                 "shorten_training_label_boost": 0.05,
                 "teacher_model_artifact": "moso/tab_grouping/model-9lc3togr:v0", # azure-frost-334 ___ "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
-                "shrink_encoder_index_remove": "1,3",
+                "shrink_encoder_index_remove": "1",
                 "shrink_decoder_index_remove": "1,3",
             }
             ]
@@ -164,7 +164,7 @@ class TuneGenTopicModel(FlowSpec):
         topic_data = get_datasets(TUNING_DATA_PATHS)
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
 
-        unlabeled_data = get_datasets(UNLABELED_DATA_PATHS)
+        unlabeled_data = get_datasets(UNLABELED_DATA_PATHS).reset_index(drop=True)
         unlabeled_data.loc[:, "input_keywords"] = ""
         unlabeled_data["input_titles"] = unlabeled_data["title"]
         unlabeled_data = unlabeled_data.drop_duplicates(subset=["input_titles"]).reset_index(drop=True)
