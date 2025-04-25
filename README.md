@@ -57,14 +57,17 @@ python utils/grouping_pipeline.py
    SimplifyMLTopics.ipynb
 ```
 
-• Cluster Labels
+• Optional - Cluster Labels
 ```
    /analysis/Directed Training Clusters.ipynb
 ```
+The clustering was used to generate some hints in the file 'topic_fine_tuning_data__01_05__grouped_with_hints.csv'
+The hints provide n-Shot examples to help direct the labels for certain categories in the Generate Labels step.
 
-•Fine tune and export ML model
-see src/jobs/Readme.md for details
+
+•Fine tune the model, distill, quantize and export ML model
+see src/jobs/Readme.md for details on this step
 
 • Analyze Results of Topic Model
-   /analysis/Rouge Scores.ipynb
+   /notebooks/Benchmarking.ipynb
 

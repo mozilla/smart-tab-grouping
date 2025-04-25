@@ -41,7 +41,9 @@ class TuneTopicBase:
                  shrink_encoder_index_remove=None, shrink_decoder_index_remove=None, brevity_weight=None,
                  label_prefix=None,
                  shorten_training_label_boost=None,
-                 teacher_model_artifact=None):
+                 teacher_model_artifact=None,
+                 model_start_artifact=None,
+                 training_data_files=None):
         self.device = "cuda:0"
 
         self.model_name = model_name
@@ -63,6 +65,8 @@ class TuneTopicBase:
         self.shrink_encoder_index_remove = shrink_encoder_index_remove
         self.label_prefix = label_prefix
         self.shorten_training_label_boost = shorten_training_label_boost
+        self.model_start_artifact = model_start_artifact
+        self.training_data_files = training_data_files
 
 
     def compute_metrics(self, eval_pred):

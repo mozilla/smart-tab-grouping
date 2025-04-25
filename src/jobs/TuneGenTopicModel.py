@@ -27,7 +27,8 @@ def cleanup_wandb_args(config):
 
 
 TAB_GROUPING_BUCKET_NAME = "stage-fx-tab-grouping"
-TUNING_DATA_PATHS = ["topic/topic_topic_fine_tuning_data__common_crawl_2025-02-23_08-18__filtered.csv",
+TUNING_DATA_PATHS = ["topic/fine_tuning_data__common_crawl_2025-02-23_08-18__filtered_fashion_edit.csv",
+                     "topic/common_corpus_noise_none_3_12.csv",
                      "topic/topic_topic_fine_tuning_data__2025-02-21_16-50__filtered.csv",
                      "topic/search_simplified.csv"
                      ]  # "topic/topic_fine_tuning_data_extractive_2_15.csv"  # "topic/topic_fine_tuning_data_guided__02_11_processed.csv"
@@ -37,7 +38,8 @@ TUNING_DATA_PATHS_WITH_NONE = ["topic/fine_tuning_data__with_none__common_crawl_
                                "topic/search_simplified.csv"
                                ]
 
-UNLABELED_DATA_PATHS = ["topic/common_crawl_unlabeled_00000.csv", "topic/common_crawl_unlabeled_00002.csv", "topic/common_crawl_unlableled_00003.csv",
+UNLABELED_DATA_PATHS = ["topic/common_crawl_unlabeled_00000.csv", "topic/common_crawl_unlabeled_00002.csv",
+                        "topic/common_crawl_unlableled_00003.csv",
                         "topic/common_crawl_unlabeled_00004.csv", "topic/common_crawl_unlabeled_00005.csv"]
 
 NOISE_TRAINING_DATA_SET_INDEX = 1
@@ -70,11 +72,12 @@ class TuneGenTopicModel(FlowSpec):
                'pandas': '1.5.3',
                'numpy': '1.26.4',
                'nltk': '3.9.1',
-               'transformers': '4.40.2',
+               'transformers[torch]': '4.40.2',
+               'conda-forge::accelerate': '1.5.2',
                'tqdm': '4.66.5',
+               'scikit-learn': '1.5.1',
                "pytorch::pytorch-cuda": "12.4",
                "pytorch::pytorch": "2.4.0",
-               'scikit-learn': '1.5.1',
                'datasets': '2.19.2',
                'wandb': '0.16.6',
                'pydantic': '2.8.2',
@@ -85,34 +88,40 @@ class TuneGenTopicModel(FlowSpec):
                'conda-forge::rouge-score': '0.1.2',
                'conda-forge::python-dotenv': '1.1.0'
            })
+    @card
     @step
     def start(self):
-        self.configs = [
-            {
-                "learning_rate": 4e-4,
-                "batch_size": 32,
-                "model_name": "google/t5-efficient-tiny",
+        # Distill fine tuned model
+        DISTILLATION_CONFIG = {
+            "learning_rate": 3e-4,
+            "batch_size": 16,
+            "model_name": "google/t5-efficient-tiny",
+            "label_column": "output",
+            "use_keywords": True,
+            "single_tab_handling": False,
+            "learning_rate_decay": False,
+            "shorten_training_label_boost": 0.06,
+            "teacher_model_artifact": "moso/tab_grouping/model-v40xoz3q:v0" # Revived-dust fine tuning run
+            # Other Run artifacts tested sage-mountain-341  azure-frost-334 and noble-yogurt-330
+        }
+
+        # initial fine tuning of a large model. Artifiact is then distilled with distillation config
+        FINE_TUNING_CONFIG = {
+                "learning_rate": 3e-4,
+                "batch_size": 4,
+                "model_name": "google/flan-t5-base",
                 "label_column": "output",
                 "use_keywords": True,
                 "single_tab_handling": False,
                 "learning_rate_decay": False,
-                "shorten_training_label_boost": 0.05,
-                "teacher_model_artifact": "moso/tab_grouping/model-9lc3togr:v0", # azure-frost-334 ___ "moso/tab_grouping/model-uxfe87sy:v0" # noble-yogurt-330
-                "shrink_encoder_index_remove": "1",
-                "shrink_decoder_index_remove": "1,3",
+                "shorten_training_label_boost": 0.05
             }
-            ]
+
+        self.configs = [
+            DISTILLATION_CONFIG
+        ]
         self._skip_configs = [
-            {
-                    "learning_rate": 3e-4,
-                    "batch_size": 2,
-                    "model_name": "google/flan-t5-base",
-                    "label_column": "output",
-                    "use_keywords": True,
-                    "single_tab_handling": False,
-                    "learning_rate_decay": False,
-                    "shorten_training_label_boost": 0.05
-            }
+
         ]
 
         self.next(self.train, foreach='configs')
@@ -123,11 +132,12 @@ class TuneGenTopicModel(FlowSpec):
                'pandas': '1.5.3',
                'numpy': '1.26.4',
                'nltk': '3.9.1',
-               'transformers': '4.40.2',
+               'transformers[torch]': '4.40.2',
+               'conda-forge::accelerate': '1.5.2',
                'tqdm': '4.66.5',
+               'scikit-learn': '1.5.1',
                "pytorch::pytorch-cuda": "12.4",
                "pytorch::pytorch": "2.4.0",
-               'scikit-learn': '1.5.1',
                'datasets': '2.19.2',
                'wandb': '0.16.6',
                'pydantic': '2.8.2',
@@ -150,16 +160,16 @@ class TuneGenTopicModel(FlowSpec):
         print(train_config)
         trainer = create_trainer_for_config(train_config)
         local_filename = "tuning_data.csv"
+
         def get_datasets(files):
             datasets = []
             print(f"Loading files files {files}")
             for training_file in files:
                 download_bucket_to_file(TAB_GROUPING_BUCKET_NAME, training_file, local_filename)
                 datasets.append(pd.read_csv(local_filename, keep_default_na=False).fillna(""))
+            datasets[NOISE_TRAINING_DATA_SET_INDEX] = datasets[NOISE_TRAINING_DATA_SET_INDEX]
             df = pd.concat(datasets, ignore_index=True).fillna("")
             return df
-
-        #datasets[NOISE_TRAINING_DATA_SET_INDEX] = datasets[NOISE_TRAINING_DATA_SET_INDEX].sample(n=500).reset_index(drop=True)  # reduce number a bit of None set
 
         topic_data = get_datasets(TUNING_DATA_PATHS)
         topic_data = topic_data.drop_duplicates(subset=["input_titles"])
@@ -183,18 +193,71 @@ class TuneGenTopicModel(FlowSpec):
             )
         )
         validation_data = download_bucket_to_csv(TAB_GROUPING_BUCKET_NAME, SINGLE_TAB_VALIDATION_PATH)
-        trainer.setup_data(topic_data,
-                           validation=validation_data,
-                           unlabeled=unlabeled_data)
+
+        if isinstance(trainer, DistillTopicT5):
+            # Distillation supports unlableled data
+            trainer.setup_data(topic_data,
+                               validation=validation_data,
+                               unlabeled=unlabeled_data.sample(n=500).reset_index(drop=True)
+                               )
+        else:
+            trainer.setup_data(topic_data,
+                               validation=validation_data
+                               )
 
         trainer.train()
         self.next(self.join)
 
+    @nvidia()
+    @conda(python='3.11.9',
+           libraries={
+               'pandas': '1.5.3',
+               'numpy': '1.26.4',
+               'nltk': '3.9.1',
+               'transformers[torch]': '4.40.2',
+               'conda-forge::accelerate': '1.5.2',
+               'tqdm': '4.66.5',
+               'scikit-learn': '1.5.1',
+               "pytorch::pytorch-cuda": "12.4",
+               "pytorch::pytorch": "2.4.0",
+               'datasets': '2.19.2',
+               'wandb': '0.16.6',
+               'pydantic': '2.8.2',
+               'conda-forge::sentencepiece': '0.2.0',
+               'conda-forge::google-cloud-storage': '3.1.0',
+               'conda-forge::pyspellchecker': '0.8.0',
+               'conda-forge::google-cloud-secret-manager': '2.23.2',
+               'conda-forge::rouge-score': '0.1.2',
+               'conda-forge::python-dotenv': '1.1.0'
+           })
+    @card
     @step
     def join(self, inputs):
         self.next(self.end)
 
-    @step
+    @nvidia()
+    @conda(python='3.11.9',
+           libraries={
+               'pandas': '1.5.3',
+               'numpy': '1.26.4',
+               'nltk': '3.9.1',
+               'transformers[torch]': '4.40.2',
+               'conda-forge::accelerate': '1.5.2',
+               'tqdm': '4.66.5',
+               'scikit-learn': '1.5.1',
+               "pytorch::pytorch-cuda": "12.4",
+               "pytorch::pytorch": "2.4.0",
+               'datasets': '2.19.2',
+               'wandb': '0.16.6',
+               'pydantic': '2.8.2',
+               'conda-forge::sentencepiece': '0.2.0',
+               'conda-forge::google-cloud-storage': '3.1.0',
+               'conda-forge::pyspellchecker': '0.8.0',
+               'conda-forge::google-cloud-secret-manager': '2.23.2',
+               'conda-forge::rouge-score': '0.1.2',
+               'conda-forge::python-dotenv': '1.1.0'
+           })
+    @card
     def end(self):
         pass
 

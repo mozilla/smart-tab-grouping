@@ -110,7 +110,7 @@ class DistillTopicT5(TuneTopicT5):
 
         # we generate targets here
         if self.unlabeled_dataset is not None:
-            tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher_model=teacher_model), batched=True)
+            tokenized_unlabeled_dataset = self.unlabeled_dataset.map(partial(self.preprocess_function, teacher_model=teacher_model), batched=True, batch_size=128)
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
         if self.unlabeled_dataset is not None:
             # combine
@@ -127,7 +127,7 @@ class DistillTopicT5(TuneTopicT5):
             type="torch", columns=["input_ids", "attention_mask", "labels", "decoder_input_ids"]
         )
 
-        num_epochs = 30
+        num_epochs = 15
 
         self.model.generation_config.update(bad_words_ids=None)
 

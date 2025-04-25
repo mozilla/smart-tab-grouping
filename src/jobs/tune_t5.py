@@ -8,7 +8,6 @@ from tune_base import TuneTopicBase, INPUT_PROMPT_ID, keyword_prompt
 import torch
 from datasets import Dataset
 from sklearn.model_selection import train_test_split
-import torch.nn.functional as F
 
 from transformers import (
     T5ForConditionalGeneration,
@@ -19,6 +18,8 @@ from transformers import (
 from util.storage import upload_directory
 from utils import get_bad_word_ids
 
+FINE_TUNE_BLOCK_BAD_WORDS = False # Recently we are Distilling later on, so bad word filter
+                                  # is not needed in this phase
 
 PROCESSED_COLUMN = "processed_label_column"
 
@@ -56,11 +57,6 @@ class TuneTopicT5(TuneTopicBase):
                     padding="max_length"
                 )
             labels = tokenized_labels["input_ids"]
-        # not sure if this is needed.
-    #        labels = [
-#            [(token if token != self.tokenizer.pad_token_id else -100) for token in label_seq]
-#            for label_seq in labels
-#        ]
         model_inputs["labels"] = labels
 
         return model_inputs
@@ -75,12 +71,21 @@ class TuneTopicT5(TuneTopicBase):
     def setup_data(self, topic_data: pd.DataFrame, validation: pd.DataFrame, filename: str = "unknown"):
         self.filename = filename
         self.tokenizer = T5Tokenizer.from_pretrained(self.model_name)
-        self.model = T5ForConditionalGeneration.from_pretrained(self.model_name)
+        if self.training_data_files is not None:
+            print(f"Training data files are {self.training_data_files}")
+        if (self.model_start_artifact):
+            artifact = wandb.run.use_artifact(self.model_start_artifact, type='model')
+            artifact_dir = artifact.download()
+            self.model = T5ForConditionalGeneration.from_pretrained(artifact_dir)
+        else:
+            self.model = T5ForConditionalGeneration.from_pretrained(self.model_name)
+
+
         topic_data = self.prep_dataframe(topic_data)
         validation = self.prep_dataframe(validation)
         if self.label_prefix is not None:
             self.label_column = PROCESSED_COLUMN
-        topic_data_training, topic_data_eval = train_test_split(topic_data, test_size=0.2)
+        topic_data_training, topic_data_eval = train_test_split(topic_data, test_size=0.1)
         train_data_dict = {"input_text": topic_data_training[INPUT_PROMPT_ID].to_list(),
                            "target_text": topic_data_training[self.label_column].to_list()}
         eval_data_dict = {"input_text": topic_data_eval[INPUT_PROMPT_ID].to_list(),
@@ -121,8 +126,7 @@ class TuneTopicT5(TuneTopicBase):
                        self.shrink_decoder_index_remove or self.shrink_encoder_index_remove
 
         os.environ["WANDB_LOG_MODEL"] = "end"  # save the model to WandB
-        wandb.init(project="tab_grouping",
-                   config={"learning_rate": self.learning_rate, "batch_size": self.batch_size,
+        config = {"learning_rate": self.learning_rate, "batch_size": self.batch_size,
                            "model_name": self.model_name,
                            "label_column": self.label_column,
                            "brevity_weight": self.brevity_weight,
@@ -134,10 +138,13 @@ class TuneTopicT5(TuneTopicBase):
                            "shrink_remove_encoder_layers": self.shrink_remove_encoder_layers,
                            "shrink_remove_decoder_layers": self.shrink_remove_decoder_layers,
                            "shorten_training_label_boost": self.shorten_training_label_boost,
-                           "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename})
+                            "model_start_artifact": self.model_start_artifact,
+                           "input_prompt_id": INPUT_PROMPT_ID, "filename": self.filename}
+        wandb.init(project="tab_grouping",
+                   config=config)
         print(f"W&B Run ID: {wandb.run.id}")
         print(f"W&B Run Name: {wandb.run.name}")
-
+        print({json.dumps(config)})
         tokenized_training_dataset = self.train_dataset.map(self.preprocess_function, batched=True)
         tokenized_eval_dataset = self.eval_dataset.map(self.preprocess_function, batched=True)
 
@@ -211,7 +218,8 @@ class TuneTopicT5(TuneTopicBase):
             self.run_eval(tokenized_validation_dataset, name="Post Remove Single Tab Validation",
                           prefix="post_remove_single_tab_val")
 
-        self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
+        if FINE_TUNE_BLOCK_BAD_WORDS:
+            self.model.generation_config.update(bad_words_ids=get_bad_word_ids())
         local_save_name = "./t5-finetuned-topic"
 
         self.model.save_pretrained(local_save_name)
