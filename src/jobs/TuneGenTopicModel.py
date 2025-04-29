@@ -2,7 +2,7 @@ from metaflow import (
     FlowSpec,
     step,
     card,
-    current, resources, kubernetes, nvidia, conda)
+    current, resources, kubernetes, nvidia, conda, gpu_profile)
 from metaflow.cards import Table
 import pandas as pd
 from distill_t5 import DistillTopicT5
@@ -94,19 +94,21 @@ class TuneGenTopicModel(FlowSpec):
         # Distill fine tuned model
         DISTILLATION_CONFIG = {
             "learning_rate": 3e-4,
-            "batch_size": 16,
+            "batch_size": 32,
             "model_name": "google/t5-efficient-tiny",
             "label_column": "output",
             "use_keywords": True,
             "single_tab_handling": False,
             "learning_rate_decay": False,
             "shorten_training_label_boost": 0.06,
+            "shrink_decoder_index_remove": "2",
+            "shrink_encoder_index_remove": "2",
             "teacher_model_artifact": "moso/tab_grouping/model-v40xoz3q:v0" # Revived-dust fine tuning run
             # Other Run artifacts tested sage-mountain-341  azure-frost-334 and noble-yogurt-330
         }
 
         # initial fine tuning of a large model. Artifiact is then distilled with distillation config
-        FINE_TUNING_CONFIG = {
+        _FINE_TUNING_CONFIG = {
                 "learning_rate": 3e-4,
                 "batch_size": 4,
                 "model_name": "google/flan-t5-base",
@@ -126,6 +128,7 @@ class TuneGenTopicModel(FlowSpec):
 
         self.next(self.train, foreach='configs')
 
+    @gpu_profile(interval=1)
     @nvidia()
     @conda(python='3.11.9',
            libraries={
@@ -198,7 +201,7 @@ class TuneGenTopicModel(FlowSpec):
             # Distillation supports unlableled data
             trainer.setup_data(topic_data,
                                validation=validation_data,
-                               unlabeled=unlabeled_data.sample(n=500).reset_index(drop=True)
+                               unlabeled=unlabeled_data.sample(n=6000).reset_index(drop=True)
                                )
         else:
             trainer.setup_data(topic_data,
@@ -257,7 +260,7 @@ class TuneGenTopicModel(FlowSpec):
                'conda-forge::rouge-score': '0.1.2',
                'conda-forge::python-dotenv': '1.1.0'
            })
-    @card
+    @step
     def end(self):
         pass
 

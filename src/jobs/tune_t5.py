@@ -106,6 +106,8 @@ class TuneTopicT5(TuneTopicBase):
         Note that new_size is supposed indicate the new size but it isn't exactly accurate
         This function needs to be updated
         """
+        if layers_to_remove is None:
+            return
         if layer_name == "encoder":
             config_name = "num_layers"
         else:

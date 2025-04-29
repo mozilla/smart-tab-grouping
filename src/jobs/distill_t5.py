@@ -77,17 +77,18 @@ class DistillTopicT5(TuneTopicT5):
             self.unlabeled_dataset = None
         super().setup_data(topic_data, validation, filename=filename)
 
-    def train(self):
-        torch.cuda.empty_cache()
-
-        if self.teacher_model_artifact is None:
-            raise Exception("Teacher model is missing")
-
+    def remove_layers(self):
         if self.shrink_encoder_index_remove or self.shrink_decoder_index_remove:
             self.shrink_remove_layers(self.model, "encoder",
                                       self.shrink_encoder_index_remove)
             self.shrink_remove_layers(self.model, "decoder",
                                       self.shrink_decoder_index_remove)
+
+    def train(self):
+        torch.cuda.empty_cache()
+
+        if self.teacher_model_artifact is None:
+            raise Exception("Teacher model is missing")
 
         os.environ["WANDB_LOG_MODEL"] = "end"  # save the model to WandB
         run = wandb.init(project="tab_grouping_distillation",
@@ -127,7 +128,7 @@ class DistillTopicT5(TuneTopicT5):
             type="torch", columns=["input_ids", "attention_mask", "labels", "decoder_input_ids"]
         )
 
-        num_epochs = 15
+        num_epochs = 40
 
         self.model.generation_config.update(bad_words_ids=None)
 
@@ -147,6 +148,13 @@ class DistillTopicT5(TuneTopicT5):
         for epoch in range(num_epochs):
             self.model.train()
             print(f"Epoch {epoch}")
+
+            if epoch == 8:
+                # Modify the model
+                self.remove_layers()
+                # Re-create the optimizer with the new model parameters
+                optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
+
             batch_index = 0
             running_loss = 0.0
             for batch in train_loader:
@@ -160,7 +168,7 @@ class DistillTopicT5(TuneTopicT5):
 
                 # Forward pass through the student model
                 student_outputs = self.model(**batch)
-                assert student_outputs.logits.size() == teacher_outputs.logits.size()
+                # assert student_outputs.logits.size() == teacher_outputs.logits.size()
                 loss = self.calculate_loss(student_outputs, teacher_outputs, batch["labels"])
                 # Backpropagation
                 loss.backward()
@@ -176,9 +184,9 @@ class DistillTopicT5(TuneTopicT5):
             wandb.log({"train_loss": avg_loss})
 
             print(f"Average Loss at epoch {epoch}:{avg_loss}")
-            self.run_eval(tokenized_eval_dataset, log_wandb=False)
-            self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val",
-                          log_wandb=False)
+           # self.run_eval(tokenized_eval_dataset, log_wandb=False)
+           # self.run_eval(tokenized_validation_dataset, name="Single Tab Validation", prefix="single_tab_val",
+           #               log_wandb=False)
 
         print(f"**** DISTILLATION COMPLETE")
         self.run_eval(tokenized_eval_dataset)
