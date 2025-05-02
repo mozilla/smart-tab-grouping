@@ -4,15 +4,6 @@ from metaflow import (
     card,
     current, resources, kubernetes, nvidia, conda, gpu_profile)
 from metaflow.cards import Table
-import pandas as pd
-from distill_t5 import DistillTopicT5
-from tune_bart import TuneTopicBart
-from tune_t5 import TuneTopicT5
-from tune_gpt2 import TuneTopicGPT2
-
-from util.secrets import load_env
-from util.storage import download_bucket_to_file, download_bucket_to_csv
-from util.shorten_topic_length import ShortenTopicLength
 
 
 def cleanup_wandb_args(config):
@@ -155,6 +146,15 @@ class TuneGenTopicModel(FlowSpec):
     @step
     def train(self):
         """Extract feedback from prospecting given by curators"""
+        from distill_t5 import DistillTopicT5
+        from tune_bart import TuneTopicBart
+        from tune_t5 import TuneTopicT5
+        from tune_gpt2 import TuneTopicGPT2
+
+        from util.secrets import load_env
+        from util.storage import download_bucket_to_file, download_bucket_to_csv
+        from util.shorten_topic_length import ShortenTopicLength
+
         train_config = self.input
         LABEL_MAX_LENGTH = 35
 
