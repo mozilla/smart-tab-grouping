@@ -10,6 +10,9 @@ from util.language_model import MessageSequenceItem, LanguageModel
 from typing import List, Dict
 import json
 
+from transformers import AutoTokenizer
+from optimum.onnxruntime import ORTModelForSeq2SeqLM
+
 
 class Prompts(BaseModel):
     document_key: str = "[DOCUMENTS]"
@@ -91,8 +94,7 @@ class TopicGenerator:
         prompt_list.append(final_query)
         return prompt_list
 
-
-class T5TopicGenerator(TopicGenerator):
+class LocalModelTopicGenerator(TopicGenerator):
     def __init__(self, model_name="./models/smart-tab-topic", title_delimiter=None):
         super().__init__()
         print(os.getcwd())
@@ -101,8 +103,6 @@ class T5TopicGenerator(TopicGenerator):
         self.model_name = model_name
         if title_delimiter is not None:
             self.title_delimiter = title_delimiter
-        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
-        self.tokenizer = T5Tokenizer.from_pretrained(model_name)
 
 
     def generate_response(self, prompt, max_tokens=34, prob_limit=None):
@@ -133,6 +133,22 @@ class T5TopicGenerator(TopicGenerator):
         seq = self.create_simple_prompt_with_keywords(data, legacy=legacy)
         return self.generate_response(seq, max_tokens, prob_limit=prob_limit)
 
+
+class T5TopicGenerator(LocalModelTopicGenerator):
+    def __init__(self, model_name="./models/smart-tab-topic", title_delimiter=None):
+        super().__init__()
+        self.model = T5ForConditionalGeneration.from_pretrained(model_name)
+        self.tokenizer = T5Tokenizer.from_pretrained(model_name)
+
+class OnnxT5TopicGenerator(T5TopicGenerator):
+    def __init__(self, model_name="./models_nnx/smart-tab-topic", title_delimiter=None):
+        super().__init__()
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        self.model = ORTModelForSeq2SeqLM.from_pretrained(model_name, local_files_only=True,
+                                                     decoder_file_name="onnx/decoder_model_quantized.onnx",
+                                                     encoder_file_name="onnx/encoder_model_quantized.onnx",
+                                                     use_cache=False)
 
 class OpenAITopicGenerator(TopicGenerator):
     def __init__(self, support_keywords=False, support_hints=False):

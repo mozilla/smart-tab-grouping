@@ -7,6 +7,8 @@ import string
 hint_embedder = pipeline("feature-extraction", model="sentence-transformers/all-MiniLM-L6-v2", device=-1)
 
 FIXED_TOPICS = {"Adult Content", "None"}
+PRESERVE_WORDS = {"real", "estate"} # real estate
+
 class ShortenTopicLength:
     def __init__(self, boost_threshold=0.1):
         self.spell = None
@@ -49,7 +51,10 @@ class ShortenTopicLength:
 
             for missing_word_index in range(len(words)):
                 # remove 1 word
-                if len(self.spell.unknown([words[missing_word_index]])) == 1:
+                word_getting_removed = words[missing_word_index]
+                if word_getting_removed.lower() in PRESERVE_WORDS:
+                    continue
+                if len(self.spell.unknown([word_getting_removed])) == 1: # skip rare word
                     continue
                 shortened_phrase = " ".join(words[:missing_word_index] + words[missing_word_index + 1:])
                 embed = self.hint_embedder(shortened_phrase)[0][0]
@@ -59,7 +64,11 @@ class ShortenTopicLength:
             if len(words) > 2:
                 # remove 2 words
                 for missing_word_index in range(len(words) - 1):
-                    if len(self.spell.unknown(words[missing_word_index:missing_word_index+2])) > 0: # either word unknown
+                    words_to_remove = words[missing_word_index:missing_word_index+2]
+                    for w in words_to_remove:
+                        if w.lower() in PRESERVE_WORDS:
+                            continue
+                    if len(self.spell.unknown(words_to_remove)) > 0: # either word unknown
                         continue
                     shortened_phrase = " ".join(words[:missing_word_index] + words[missing_word_index + 2:])
                     embed = self.hint_embedder(shortened_phrase)[0][0]
