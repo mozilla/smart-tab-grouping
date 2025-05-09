@@ -69,7 +69,7 @@ def get_classifications(window, anchors, embedding_model, classifier_params, thr
     anchor_title_embeddings = [t for i,t in enumerate(embedding_model.encode(window_titles)) if i in anchor_indices]
     anchor_url_embeddings = [t for i,t in enumerate(embedding_model.encode(window_urls)) if i in anchor_indices]
 
-    other_group_names = list(set(group_names).difference(set(anchor_group_name)))
+    other_group_names = list(set(group_names).difference(set([anchor_group_name])))
     other_group_embeddings = [t for i,t in enumerate(embedding_model.encode(other_group_names))]
     for cg, c_title, c_url, ci in zip(candidate_groups, candidate_titles, candidate_urls, candidate_indices):
         ct[c_title] = {}
