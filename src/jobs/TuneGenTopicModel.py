@@ -2,17 +2,8 @@ from metaflow import (
     FlowSpec,
     step,
     card,
-    current, resources, kubernetes, nvidia, conda, gpu_profile)
+    current, resources, kubernetes, nvidia, nvct, conda, gpu_profile)
 from metaflow.cards import Table
-import pandas as pd
-from distill_t5 import DistillTopicT5
-from tune_bart import TuneTopicBart
-from tune_t5 import TuneTopicT5
-from tune_gpt2 import TuneTopicGPT2
-
-from util.secrets import load_env
-from util.storage import download_bucket_to_file, download_bucket_to_csv
-from util.shorten_topic_length import ShortenTopicLength
 
 
 def cleanup_wandb_args(config):
@@ -47,26 +38,13 @@ NOISE_TRAINING_DATA_SET_INDEX = 1
 SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
 
 
-def create_trainer_for_config(config: dict[str, any]):
-    if "t5" in config["model_name"]:
-        if config.get("teacher_model_artifact", None) is None:
-            return TuneTopicT5(**config)
-        else:
-            return DistillTopicT5(**config)
-    if "gpt" in config["model_name"]:
-        return TuneTopicGPT2(**config)
-    if "bart" in config["model_name"]:
-        return TuneTopicBart(**config)
-    return None
-
-
 class TuneGenTopicModel(FlowSpec):
     """
     A flow to tune the Generative Topic Model based on flan-t5-small
     This model is used for the Smart Tab Grouping project
     """
 
-    @nvidia()
+    @nvct()
     @conda(python='3.11.9',
            libraries={
                'pandas': '1.5.3',
@@ -129,7 +107,7 @@ class TuneGenTopicModel(FlowSpec):
         self.next(self.train, foreach='configs')
 
     @gpu_profile(interval=1)
-    @nvidia()
+    @nvct()
     @conda(python='3.11.9',
            libraries={
                'pandas': '1.5.3',
@@ -155,12 +133,35 @@ class TuneGenTopicModel(FlowSpec):
     @step
     def train(self):
         """Extract feedback from prospecting given by curators"""
+        import pandas as pd
+        from distill_t5 import DistillTopicT5
+        from tune_bart import TuneTopicBart
+        from tune_t5 import TuneTopicT5
+        from tune_gpt2 import TuneTopicGPT2
+
+        from util.secrets import load_env
+        from util.storage import download_bucket_to_file, download_bucket_to_csv
+        from util.shorten_topic_length import ShortenTopicLength
+
         train_config = self.input
         LABEL_MAX_LENGTH = 35
 
         load_env()
         print("Training Config: ")
         print(train_config)
+
+        def create_trainer_for_config(config: dict[str, any]):
+            if "t5" in config["model_name"]:
+                if config.get("teacher_model_artifact", None) is None:
+                    return TuneTopicT5(**config)
+                else:
+                    return DistillTopicT5(**config)
+            if "gpt" in config["model_name"]:
+                return TuneTopicGPT2(**config)
+            if "bart" in config["model_name"]:
+                return TuneTopicBart(**config)
+            return None
+
         trainer = create_trainer_for_config(train_config)
         local_filename = "tuning_data.csv"
 
@@ -211,7 +212,7 @@ class TuneGenTopicModel(FlowSpec):
         trainer.train()
         self.next(self.join)
 
-    @nvidia()
+    @nvct()
     @conda(python='3.11.9',
            libraries={
                'pandas': '1.5.3',
@@ -238,7 +239,7 @@ class TuneGenTopicModel(FlowSpec):
     def join(self, inputs):
         self.next(self.end)
 
-    @nvidia()
+    @nvct()
     @conda(python='3.11.9',
            libraries={
                'pandas': '1.5.3',
