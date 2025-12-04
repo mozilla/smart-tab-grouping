@@ -1,0 +1,269 @@
+task,url,title,test_set_id
+Neural network interpretability research,https://scholar.google.com/scholar?q=feature+attribution+methods,feature attribution methods - Google Scholar,user-mixed-1
+Neural network interpretability research,https://arxiv.org/abs/2010.11929,Explaining Neural Networks via Activation Clustering,user-mixed-1
+Neural network interpretability research,https://docs.google.com/document/d/1-interpretability-notes,[Notes] NN interpretability reading group - Google Docs,user-mixed-1
+Neural network interpretability research,https://github.com/openai/clarity-tools,openai/clarity-tools: Visualization toolkit for neural networks,user-mixed-1
+Home office shopping,https://www.amazon.com/s?k=ergonomic+chair+mesh,Amazon.com : ergonomic chair mesh,user-mixed-1
+Home office shopping,https://www.ikea.com/us/en/cat/desks-computer-desks-20649/,Desks & computer desks - IKEA,user-mixed-1
+Home office shopping,https://www.reddit.com/r/BuyItForLife/comments/desk_recommendations,Looking for a solid desk : r/BuyItForLife,user-mixed-1
+Home office shopping,https://www.youtube.com/watch?v=setup-tour-2024,My 2024 home office setup tour,user-mixed-1
+Ungrouped-browsing-mixed,https://www.google.com/search?q=best+pizza+near+me,best pizza near me - Google Search,user-mixed-1
+Ungrouped-browsing-mixed,https://www.youtube.com/watch?v=random-music-video,Lo-fi beats to relax/study to,user-mixed-1
+Ungrouped-browsing-mixed,https://twitter.com/home,Home / X,user-mixed-1
+Quarterly planning - work,https://outlook.office.com/mail/inbox/id/AAMk-planning-thread,Re: Q3 planning deck - Outlook,user-mixed-2
+Quarterly planning - work,https://teams.microsoft.com/l/channel/19%3aplanning,Q3 Planning channel | Microsoft Teams,user-mixed-2
+Quarterly planning - work,https://contoso.sharepoint.com/sites/Eng/Shared%20Documents/Q3-OKRs.pptx,Engineering Q3 OKRs - PowerPoint Online,user-mixed-2
+Quarterly planning - work,https://docs.microsoft.com/en-us/azure/architecture/best-practices/cost,Cost optimization checklist - Microsoft Azure,user-mixed-2
+Incident postmortem - work,https://contoso.atlassian.net/jira/software/c/projects/SEV/issues/SEV-1024,[SEV-1024] Production outage on 2024-08-03 - Jira,user-mixed-2
+Incident postmortem - work,https://contoso.sharepoint.com/sites/SRE/Shared%20Documents/SEV-1024-postmortem.docx,SEV-1024 Postmortem - Word Online,user-mixed-2
+Incident postmortem - work,https://outlook.office.com/mail/deeplink/pm-thread,[postmortem] draft for review - Outlook,user-mixed-2
+Incident postmortem - work,https://teams.microsoft.com/l/meeting/sev-review,SEV-1024 review meeting | Microsoft Teams,user-mixed-2
+Job search - personal,https://www.linkedin.com/jobs/search/?keywords=site+reliability+engineer,Site Reliability Engineer jobs | LinkedIn,user-mixed-2
+Job search - personal,https://contoso.atlassian.net/jira/software/c/projects/CAREERS/issues/INT-57,[INT-57] SRE onsite interview loop - Jira,user-mixed-2
+Job search - personal,https://docs.google.com/spreadsheets/d/job-tracker,Job applications tracker - Google Sheets,user-mixed-2
+Job search - personal,https://calendar.google.com/calendar/u/0/r/week,Interviews this week - Google Calendar,user-mixed-2
+Rust async learning,https://doc.rust-lang.org/book/ch20-00-final-project-a-web-server.html,Final Project: Building a Multithreaded Web Server - Rust Book,user-mixed-3
+Rust async learning,https://tokio.rs/tokio/topics/bridging,Bridging sync and async - Tokio,user-mixed-3
+Rust async learning,https://github.com/tokio-rs/mini-redis,tokio-rs/mini-redis: In-memory key-value store in Rust,user-mixed-3
+Rust async learning,https://stackoverflow.com/questions/ask?tags=rust+async,Ask a question - Stack Overflow,user-mixed-3
+Pixel art game prototype,https://godotengine.org/article/godot-4-2-release,Announcing Godot 4.2,user-mixed-3
+Pixel art game prototype,https://itch.io/game-assets/free/pixel-art,Free pixel art assets - itch.io,user-mixed-3
+Pixel art game prototype,https://www.youtube.com/watch?v=tilemap-tutorial,Godot 4 tilemap tutorial,user-mixed-3
+Pixel art game prototype,https://github.com/user/pixel-platformer,user/pixel-platformer: prototype,user-mixed-3
+Ungrouped-dev-random,https://github.com/mozilla/gecko-dev,mozilla/gecko-dev: Firefox source,user-mixed-3
+Ungrouped-dev-random,https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie,Set-Cookie - HTTP | MDN,user-mixed-3
+Ungrouped-dev-random,https://stackoverflow.com/questions/what-is-a-race-condition,What is a race condition? - Stack Overflow,user-mixed-3
+Personal finance cleanup,https://www.chase.com/personal/credit-cards/dashboard,Credit card dashboard | Chase,user-mixed-4
+Personal finance cleanup,https://docs.google.com/spreadsheets/d/budget-2024,2024 Household Budget - Google Sheets,user-mixed-4
+Personal finance cleanup,https://www.nerdwallet.com/the-best-travel-credit-cards,Best travel credit cards - NerdWallet,user-mixed-4
+Personal finance cleanup,https://www.reddit.com/r/personalfinance/comments/hsa6/best_budgeting_strategy,Best budgeting strategy? : r/personalfinance,user-mixed-4
+Trip planning - Japan,https://www.google.com/search?q=7+day+tokyo+kyoto+itinerary,7 day tokyo kyoto itinerary - Google Search,user-mixed-4
+Trip planning - Japan,https://www.japan-guide.com/e/e2400_tokyo.html,Tokyo Travel Guide - japan-guide.com,user-mixed-4
+Trip planning - Japan,https://www.booking.com/hotel/jp/tokyo-station.en-us.html,"Tokyo Station Hotel, Tokyo – Booking.com",user-mixed-4
+Trip planning - Japan,https://www.youtube.com/watch?v=japan-rail-pass,How to use the Japan Rail Pass (2024),user-mixed-4
+Trip planning - Japan,https://docs.google.com/document/d/japan-packing-list,Japan trip packing list - Google Docs,user-mixed-4
+Language learning - Japanese,https://www.duolingo.com/course/ja/en/Learn-Japanese,Learn Japanese - Duolingo,user-mixed-4
+Language learning - Japanese,https://www.tofugu.com/japanese/jlpt-n5-kanji/,JLPT N5 Kanji - Tofugu,user-mixed-4
+Language learning - Japanese,https://ankiweb.net/shared/info/japanese-core-2k,Japanese Core 2k/6k vocab deck,user-mixed-4
+Language learning - Japanese,https://www.youtube.com/watch?v=japanese-pronunciation,Japanese pronunciation for beginners,user-mixed-4
+Team onboarding - internal,https://confluence.example.com/display/ENG/Onboarding+Checklist,Engineering onboarding checklist - Confluence,user-mixed-5
+Team onboarding - internal,https://github.com/example/backend/wiki/Architecture-Overview,Backend architecture overview · Wiki,user-mixed-5
+Team onboarding - internal,https://docs.google.com/presentation/d/onboarding-deck,Team onboarding deck - Google Slides,user-mixed-5
+Team onboarding - internal,https://zoom.us/rec/share/onboarding-recording,Recording: Engineering onboarding call,user-mixed-5
+Competition benchmarking,https://www.google.com/search?q=browser+ai+features+comparison,browser ai features comparison - Google Search,user-mixed-5
+Competition benchmarking,https://www.microsoft.com/en-us/edge/features,Microsoft Edge features,user-mixed-5
+Competition benchmarking,https://blog.google/products/chrome/ai-features-in-chrome/,New AI features in Chrome,user-mixed-5
+Competition benchmarking,https://www.opera.com/gx,Opera GX browser for gamers,user-mixed-5
+Competition benchmarking,https://docs.google.com/spreadsheets/d/benchmark-matrix,AI browser features benchmark - Google Sheets,user-mixed-5
+Ungrouped-saas-random,https://slack.com/app_redirect?channel=random,#random | Slack,user-mixed-5
+Ungrouped-saas-random,https://calendar.google.com/calendar/u/0/r,My calendar - Google Calendar,user-mixed-5
+Ungrouped-saas-random,https://meet.google.com/xyz-abcd-efg,Weekly sync - Google Meet,user-mixed-5
+Ungrouped-saas-random,https://zoom.us/j/123456789,Join meeting - Zoom,user-mixed-5
+PhD applications US universities,https://www.google.com/search?q=computer+science+phd+ranking+us,computer science phd ranking us - Google Search,user-google-1
+PhD applications US universities,https://docs.google.com/spreadsheets/d/1phd_deadlines_us,PhD application deadlines 2025 - US,user-google-1
+PhD applications US universities,https://docs.google.com/document/d/1sop_draft,Statement of Purpose draft - CS PhD,user-google-1
+PhD applications US universities,https://calendar.google.com/calendar/u/0/r/week,Calendar - Application reminder week,user-google-1
+PhD applications US universities,https://mail.google.com/mail/u/0/#label/PhD,Inbox (3) - PhD prof replies,user-google-1
+PhD applications US universities,https://www.google.com/search?q=cs+phd+statement+of+purpose+examples,cs phd statement of purpose examples - Google Search,user-google-1
+PhD applications US universities,https://meet.google.com/abc-phd-info-session,CS PhD info session - Google Meet,user-google-1
+EU Masters programs,https://www.google.com/search?q=masters+ai+programs+europe,masters ai programs europe - Google Search,user-google-1
+EU Masters programs,https://docs.google.com/spreadsheets/d/1eu_masters_comparison,EU Masters vs US PhD comparison,user-google-1
+EU Masters programs,https://docs.google.com/document/d/1motivation_letter_eu,Motivation letter notes - Europe,user-google-1
+EU Masters programs,https://maps.google.com/?q=ETH+Zurich,ETH Zürich - Google Maps,user-google-1
+EU Masters programs,https://www.google.com/search?q=tu+delft+msc+ai+tuition,tu delft msc ai tuition - Google Search,user-google-1
+EU Masters programs,https://www.youtube.com/watch?v=campus_tour_eth,ETH Zurich campus tour (Computer Science),user-google-1
+,https://www.google.com/search?q=pancake+recipe+buttermilk,pancake recipe buttermilk - Google Search,user-google-1
+,https://www.youtube.com/watch?v=random_music_mix,lofi hip hop mix - beats to relax/study to,user-google-1
+,https://news.ycombinator.com/,Hacker News,user-google-1
+,https://drive.google.com/drive/u/0/my-drive,My Drive - Google Drive,user-google-1
+,https://docs.google.com/document/d/random_unnamed_doc,Untitled document,user-google-1
+Japan trip planning,https://www.google.com/search?q=7+day+itinerary+tokyo+kyoto,7 day itinerary tokyo kyoto - Google Search,user-google-2
+Japan trip planning,https://www.google.com/maps/place/Tokyo+Station/,Tokyo Station - Google Maps,user-google-2
+Japan trip planning,https://www.google.com/maps/place/Kyoto+Station/,Kyoto Station - Google Maps,user-google-2
+Japan trip planning,https://docs.google.com/spreadsheets/d/1japan_budget,Japan trip budget 2025,user-google-2
+Japan trip planning,https://docs.google.com/document/d/1packing_list_japan,Packing list - Japan early spring,user-google-2
+Japan trip planning,https://www.google.com/search?q=suica+card+how+to+use,suica card how to use - Google Search,user-google-2
+Japan trip planning,https://www.youtube.com/watch?v=japan_train_guide,"How to ride trains in Japan (JR Pass, Suica, IC cards)",user-google-2
+Remote work tools evaluation,https://www.google.com/search?q=best+video+conferencing+tools+2025,best video conferencing tools 2025 - Google Search,user-google-2
+Remote work tools evaluation,https://docs.google.com/spreadsheets/d/1remote_tools_comparison,Remote collaboration tools comparison,user-google-2
+Remote work tools evaluation,https://docs.google.com/document/d/1async_standup_brainstorm,Async standup experiment notes,user-google-2
+Remote work tools evaluation,https://meet.google.com/remote-sync,Remote tools evaluation sync,user-google-2
+Remote work tools evaluation,https://www.youtube.com/watch?v=zoom_vs_meet,Zoom vs Google Meet: Which is better?,user-google-2
+Remote work tools evaluation,https://calendar.google.com/calendar/u/0/r/month,Calendar - Remote tools trial schedule,user-google-2
+Japanese language study,https://www.google.com/search?q=jlpt+n4+grammar+list,jlpt n4 grammar list - Google Search,user-google-2
+Japanese language study,https://docs.google.com/spreadsheets/d/1jlpt_vocab_n4,JLPT N4 vocabulary deck planning,user-google-2
+Japanese language study,https://docs.google.com/document/d/1japanese_diary,Japanese daily diary / practice sentences,user-google-2
+Japanese language study,https://www.youtube.com/watch?v=hiragana_lesson,Learn Hiragana in 1 Hour - Japanese Lesson,user-google-2
+Japanese language study,https://www.youtube.com/watch?v=anime_clip_jp_subs,Anime scene with Japanese + English subtitles,user-google-2
+,https://www.google.com/search?q=ergo+keyboard+cheap,ergo keyboard cheap - Google Search,user-google-2
+,https://www.youtube.com/watch?v=bike_maintenance_basics,Bike Maintenance Basics - YouTube,user-google-2
+,"https://www.google.com/maps/@0,0,3z",World - Google Maps,user-google-2
+,https://mail.google.com/mail/u/0/#inbox,Inbox (47) - random,user-google-2
+Indie game prototype (Godot),https://www.google.com/search?q=godot+3d+character+controller,godot 3d character controller - Google Search,user-google-3
+Indie game prototype (Godot),https://docs.google.com/document/d/1game_design_notes,Indie game concept + mechanics,user-google-3
+Indie game prototype (Godot),https://docs.google.com/spreadsheets/d/1game_task_board,Game development task board,user-google-3
+Indie game prototype (Godot),https://www.youtube.com/watch?v=godot_tutorial_platformer,Godot 4 3D Platformer Tutorial,user-google-3
+Indie game prototype (Godot),https://github.com/example/godot-prototype,example/godot-prototype: test repo,user-google-3
+Personal finance rework,https://www.google.com/search?q=50+30+20+budget+rule,50 30 20 budget rule - Google Search,user-google-3
+Personal finance rework,https://docs.google.com/spreadsheets/d/1monthly_budget_2025,2025 Monthly budget,user-google-3
+Personal finance rework,https://docs.google.com/spreadsheets/d/1expense_tracking,Expense tracking - detail view,user-google-3
+Personal finance rework,https://docs.google.com/document/d/1finance_principles,Personal finance principles and rules,user-google-3
+Personal finance rework,https://www.youtube.com/watch?v=index_fund_basics,Index funds for beginners (ETF investing),user-google-3
+Personal finance rework,https://www.google.com/search?q=etf+vs+index+fund+tax+efficiency,etf vs index fund tax efficiency - Google Search,user-google-3
+Apartment move checklist,https://www.google.com/search?q=apartment+move+checklist,apartment move checklist - Google Search,user-google-3
+Apartment move checklist,https://docs.google.com/document/d/1move_out_tasks,Move-out checklist - current apartment,user-google-3
+Apartment move checklist,https://docs.google.com/document/d/1move_in_tasks,Move-in checklist - new place,user-google-3
+Apartment move checklist,https://docs.google.com/spreadsheets/d/1moving_budget,Moving budget 2025,user-google-3
+Apartment move checklist,https://www.google.com/maps/search/grocery+near+new+address,grocery near new address - Google Maps,user-google-3
+Apartment move checklist,https://www.youtube.com/watch?v=how_to_pack_efficiently,How to pack efficiently for a move,user-google-3
+,https://www.google.com/search?q=best+coffee+beans+for+espresso,best coffee beans for espresso - Google Search,user-google-3
+,https://www.youtube.com/watch?v=espresso_distribution_techniques,Espresso distribution techniques,user-google-3
+,https://calendar.google.com/calendar/u/0/r/day,Calendar - random day,user-google-3
+,https://drive.google.com/drive/u/0/shared-with-me,Shared with me - Google Drive,user-google-3
+Blues guitar practice,https://www.google.com/search?q=blues+guitar+backing+track+in+A,blues guitar backing track in A - Google Search,user-google-4
+Blues guitar practice,https://docs.google.com/document/d/1blues_practice_log,Blues practice log 2025,user-google-4
+Blues guitar practice,https://docs.google.com/spreadsheets/d/1blues_songs_progress,Blues songs progress tracker,user-google-4
+Blues guitar practice,https://www.youtube.com/watch?v=blues_lesson_bbm,Slow Blues Guitar Lesson in Bm,user-google-4
+Blues guitar practice,https://www.youtube.com/watch?v=bb_king_style_licks,BB King style licks tutorial,user-google-4
+Portrait photography course,https://www.google.com/search?q=portrait+photography+natural+light+tips,portrait photography natural light tips - Google Search,user-google-4
+Portrait photography course,https://docs.google.com/document/d/1portrait_notes,Portrait photography notes,user-google-4
+Portrait photography course,https://docs.google.com/spreadsheets/d/1shoot_schedule,Portrait shoot schedule and models,user-google-4
+Portrait photography course,https://www.youtube.com/watch?v=portrait_lighting_outdoor,Outdoor portrait lighting tutorial,user-google-4
+Portrait photography course,https://www.google.com/search?q=85mm+vs+50mm+for+portraits,85mm vs 50mm for portraits - Google Search,user-google-4
+Home espresso dialing-in,https://www.google.com/search?q=how+to+dial+in+espresso,how to dial in espresso - Google Search,user-google-4
+Home espresso dialing-in,https://docs.google.com/spreadsheets/d/1espresso_log,Espresso dial-in log,user-google-4
+Home espresso dialing-in,https://docs.google.com/document/d/1espresso_recipes,Espresso recipes by bean,user-google-4
+Home espresso dialing-in,https://www.youtube.com/watch?v=espresso_channeling_fix,How to fix espresso channeling,user-google-4
+,https://www.google.com/search?q=how+to+untangle+guitar+cable,how to untangle guitar cable - Google Search,user-google-4
+,https://www.youtube.com/watch?v=cat_video_compilation,Funny cats compilation,user-google-4
+,https://docs.google.com/document/d/random_ideas_note,Random ideas,user-google-4
+React performance audit,https://www.google.com/search?q=react+profiling+chrome+devtools,react profiling chrome devtools - Google Search,user-google-5
+React performance audit,https://docs.google.com/document/d/1react_perf_plan,React performance audit plan,user-google-5
+React performance audit,https://docs.google.com/spreadsheets/d/1react_perf_metrics,React app performance metrics,user-google-5
+React performance audit,https://www.youtube.com/watch?v=react_suspense_explained,React Suspense explained,user-google-5
+React performance audit,https://www.google.com/search?q=why+is+my+react+app+slow,why is my react app slow - Google Search,user-google-5
+Python ETL pipeline redesign,https://www.google.com/search?q=python+etl+best+practices,python etl best practices - Google Search,user-google-5
+Python ETL pipeline redesign,https://docs.google.com/document/d/1etl_design_notes,ETL pipeline redesign notes,user-google-5
+Python ETL pipeline redesign,https://docs.google.com/spreadsheets/d/1etl_backlog,ETL refactor backlog,user-google-5
+Python ETL pipeline redesign,https://www.youtube.com/watch?v=airflow_tutorial,Apache Airflow tutorial for beginners,user-google-5
+Python ETL pipeline redesign,https://www.google.com/search?q=dbt+vs+airflow,dbt vs airflow - Google Search,user-google-5
+Interview prep system design,https://www.google.com/search?q=system+design+interview+prep,system design interview prep - Google Search,user-google-5
+Interview prep system design,https://docs.google.com/document/d/1system_design_notes,System design notes + sketches,user-google-5
+Interview prep system design,https://docs.google.com/spreadsheets/d/1system_design_schedule,System design interview practice schedule,user-google-5
+Interview prep system design,https://www.youtube.com/watch?v=distributed_cache_design,Distributed cache system design,user-google-5
+Interview prep system design,https://www.google.com/search?q=consistent+hashing+explained,consistent hashing explained - Google Search,user-google-5
+,https://mail.google.com/mail/u/0/#inbox,Inbox (13),user-google-5
+,https://calendar.google.com/calendar/u/0/r/month,Calendar - March 2025,user-google-5
+,https://www.google.com/search?q=best+ergonomic+office+chair+under+300,best ergonomic office chair under 300 - Google Search,user-google-5
+,https://www.youtube.com/watch?v=focus_music_two_hours,Deep focus music - 2 hours,user-google-5
+Wedding budget planning,https://docs.google.com/spreadsheets/d/1wedding-budget/edit,Wedding budget breakdown - Google Sheets,user-aug-1
+Wedding budget planning,https://docs.google.com/document/d/1wedding-guests/edit,Guest list and RSVPs - Google Docs,user-aug-1
+Wedding budget planning,https://www.google.com/search?q=wedding+catering+costs,wedding catering costs - Google Search,user-aug-1
+Wedding budget planning,https://www.google.com/search?q=best+wedding+venues+near+me,best wedding venues near me - Google Search,user-aug-1
+Wedding budget planning,https://calendar.google.com/calendar/u/0/r/week,Wedding planning calls - Google Calendar,user-aug-1
+Job search data science,https://docs.google.com/document/d/1resume-ds/edit,Data Science Resume - Google Docs,user-aug-1
+Job search data science,https://docs.google.com/spreadsheets/d/1job-tracker/edit,Job applications tracker - Google Sheets,user-aug-1
+Job search data science,https://www.google.com/search?q=data+scientist+remote+jobs,data scientist remote jobs - Google Search,user-aug-1
+Job search data science,https://www.indeed.com/viewjob?jk=123456,Senior Data Scientist - Indeed.com,user-aug-1
+Job search data science,https://www.linkedin.com/jobs/view/123456/,Machine Learning Engineer - LinkedIn,user-aug-1
+Home renovation ideas,https://www.google.com/search?q=kitchen+backsplash+ideas,kitchen backsplash ideas - Google Search,user-aug-2
+Home renovation ideas,https://www.youtube.com/watch?v=DIYkitchenMakeover,DIY Kitchen Makeover on a Budget - YouTube,user-aug-2
+Home renovation ideas,https://docs.google.com/document/d/1reno-notes/edit,Home renovation notes - Google Docs,user-aug-2
+Home renovation ideas,https://www.houzz.com/photos/kitchen,Kitchen Design Ideas - Houzz,user-aug-2
+Kids school admin,https://docs.google.com/spreadsheets/d/1school-calendar/edit,School calendar and activities - Google Sheets,user-aug-2
+Kids school admin,https://mail.google.com/mail/u/0/#inbox/school,Inbox - School announcements - Gmail,user-aug-2
+Kids school admin,https://classroom.google.com/u/0/h,Google Classroom,user-aug-2
+Kids school admin,https://www.google.com/search?q=school+lunch+ideas,school lunch ideas - Google Search,user-aug-2
+Quarterly planning - Microsoft,https://outlook.office.com/mail/id/AAMkQ,Q3 planning thread - Inbox - Outlook,user-aug-3
+Quarterly planning - Microsoft,https://www.office.com/launch/excel?auth=2,Q3 OKRs tracking - Excel Online,user-aug-3
+Quarterly planning - Microsoft,https://www.office.com/launch/powerpoint?auth=2,Q3 strategy review deck - PowerPoint Online,user-aug-3
+Quarterly planning - Microsoft,https://teams.microsoft.com/_#/calendarv2,Q3 planning sync - Microsoft Teams,user-aug-3
+Incident postmortem - Microsoft,https://outlook.office.com/mail/id/AAMkQpostmortem,SEV-2 database outage follow-up - Outlook,user-aug-3
+Incident postmortem - Microsoft,https://www.office.com/launch/word?auth=2,Incident 2024-03-05 Postmortem - Word Online,user-aug-3
+Incident postmortem - Microsoft,https://teams.microsoft.com/_#/conversations/incident-bridge,Incident bridge channel - Microsoft Teams,user-aug-3
+Personal knowledge base,https://www.notion.so/user/Workspace-home-123abc,Workspace home – Notion,user-aug-4
+Personal knowledge base,https://www.notion.so/user/Book-notes-ml-ops-456def,Book notes: ML Ops - Notion,user-aug-4
+Personal knowledge base,https://www.notion.so/user/Ideas-inbox-789ghi,Ideas inbox - Notion,user-aug-4
+Personal knowledge base,https://www.notion.so/user/Recipes-and-meal-plans-555aaa,Recipes and meal plans - Notion,user-aug-4
+Startup fundraising,https://www.notion.so/user/Investor-CRM-555xyz,Investor CRM - Notion,user-aug-4
+Startup fundraising,https://docs.google.com/presentation/d/1pitchdeck/edit,Seed round pitch deck - Google Slides,user-aug-4
+Startup fundraising,https://www.google.com/search?q=seed+saas+valuations,seed saas valuations - Google Search,user-aug-4
+Startup fundraising,https://calendar.google.com/calendar/u/0/r/week?tab=mc,Investor intro calls - Google Calendar,user-aug-4
+Open source contribution,https://github.com/mozilla/gecko-dev/pull/12345,Fix layout bug in tab strip by vbaungally · Pull Request,user-aug-5
+Open source contribution,https://github.com/mozilla/gecko-dev/issues/98765,Smart Tab Grouping: mis-grouping Google tabs,user-aug-5
+Open source contribution,https://chat.mozilla.org/#/room/#smart-tab-grouping:mozilla.org,Matrix | smart-tab-grouping,user-aug-5
+Open source contribution,https://bugzilla.mozilla.org/show_bug.cgi?id=1900000,Bug 1900000 - Improve SmartTabGroupingManager domain bucketing,user-aug-5
+Side project web app,https://github.com/user/side-project,side-project: tab grouping prototype,user-aug-5
+Side project web app,https://vercel.com/dashboard,Vercel Dashboard – side-project,user-aug-5
+Side project web app,https://www.figma.com/file/1234/Tab-grouping-UI,Tab grouping UI explorations – Figma,user-aug-5
+Side project web app,https://trello.com/b/abcd1234/tab-grouping-roadmap,Tab grouping roadmap – Trello,user-aug-5
+Language learning,https://www.youtube.com/watch?v=spanishListening1,Intermediate Spanish Listening Practice - YouTube,user-aug-6
+Language learning,https://www.netflix.com/watch/80057281,Spanish show for practice - Netflix,user-aug-6
+Language learning,https://www.duolingo.com/learn,Duolingo - Learn Spanish,user-aug-6
+Language learning,https://www.google.com/search?q=spanish+subjunctive+guide,spanish subjunctive guide - Google Search,user-aug-6
+Running training plan,https://www.youtube.com/watch?v=marathonTips,How to train for your first marathon - YouTube,user-aug-6
+Running training plan,https://docs.google.com/spreadsheets/d/1marathon-plan/edit,18-week marathon training plan - Google Sheets,user-aug-6
+Running training plan,https://www.strava.com/athletes/123456,Vasish B. | Strava,user-aug-6
+Running training plan,https://www.google.com/search?q=best+carbon+plate+running+shoes,best carbon plate running shoes - Google Search,user-aug-6
+Deep learning course,https://www.coursera.org/learn/deep-neural-networks,Improving Deep Neural Networks - Coursera,user-aug-7
+Deep learning course,https://docs.google.com/document/d/1dl-notes/edit,Deep learning lecture notes - Google Docs,user-aug-7
+Deep learning course,https://github.com/deeplearning-ai/assignment,Course assignments - GitHub,user-aug-7
+Deep learning course,https://www.youtube.com/watch?v=deepLecture1,Lecture 1: Introduction to Deep Learning - YouTube,user-aug-7
+Casual browsing break,https://www.youtube.com/watch?v=funnyCatsCompilation,Funny cats compilation 2024 - YouTube,user-aug-7
+Casual browsing break,https://www.reddit.com/r/funny/,r/funny - Reddit,user-aug-7
+Casual browsing break,https://www.google.com/search?q=best+memes+2024,best memes 2024 - Google Search,user-aug-7
+Taxes and personal finance,https://docs.google.com/spreadsheets/d/1taxes-2024/edit,2024 Taxes summary - Google Sheets,user-aug-8
+Taxes and personal finance,https://docs.google.com/document/d/1tax-notes/edit,Tax filing notes - Google Docs,user-aug-8
+Taxes and personal finance,https://www.google.com/search?q=standard+deduction+2024,standard deduction 2024 - Google Search,user-aug-8
+Taxes and personal finance,https://www.irs.gov/individuals,Individual Taxpayers | Internal Revenue Service,user-aug-8
+Vacation brainstorm,https://docs.google.com/document/d/1vacation-ideas/edit,Summer vacation ideas - Google Docs,user-aug-8
+Vacation brainstorm,https://www.google.com/search?q=best+hiking+in+alps,best hiking in alps - Google Search,user-aug-8
+Vacation brainstorm,https://www.airbnb.com/s/Chamonix--France/homes,Vacation Rentals & Airbnb in Chamonix,user-aug-8
+Vacation brainstorm,https://www.youtube.com/watch?v=alpsHikeVlog,Hiking the French Alps - Travel Vlog - YouTube,user-aug-8
+System design reading (articles),https://www.google.com/search?q=system+design+basics,system design basics - Google Search,user-domain-1
+System design reading (articles),https://www.google.com/search?q=design+scalable+chat+service,design scalable chat service - Google Search,user-domain-1
+System design reading (articles),https://www.google.com/search?q=load+balancer+system+design,load balancer system design - Google Search,user-domain-1
+System design reading (articles),https://www.google.com/search?q=distributed+cache+design,distributed cache design - Google Search,user-domain-1
+System design video playlist,https://www.youtube.com/watch?v=system_design_intro,System Design Interview Introduction - YouTube,user-domain-1
+System design video playlist,https://www.youtube.com/watch?v=design_url_shortener,System Design: URL Shortener - YouTube,user-domain-1
+System design video playlist,https://www.youtube.com/watch?v=design_newsfeed,System Design: News Feed - YouTube,user-domain-1
+System design video playlist,https://www.youtube.com/watch?v=design_messaging_app,System Design: Messaging App - YouTube,user-domain-1
+Backend interview notes (Docs),https://docs.google.com/document/d/1sysdes-notes-overview,Backend system design notes overview - Google Docs,user-domain-1
+Backend interview notes (Docs),https://docs.google.com/document/d/1sysdes-consistency-cheatsheet,Cheatsheet: consistency and availability tradeoffs - Google Docs,user-domain-1
+Backend interview notes (Docs),https://docs.google.com/document/d/1sysdes-cap-theorem-summary,CAP theorem summary for interviews - Google Docs,user-domain-1
+Mechanical keyboard shopping (Amazon),https://www.amazon.com/dp/B08MKZXGBY,Mechanical gaming keyboard with hot-swap switches - Amazon,user-domain-2
+Mechanical keyboard shopping (Amazon),https://www.amazon.com/dp/B09MECHKEY01,Low-profile mechanical keyboard for travel - Amazon,user-domain-2
+Mechanical keyboard shopping (Amazon),https://www.amazon.com/s?k=mechanical+keyboard+tactile,mechanical keyboard tactile - Amazon search,user-domain-2
+Mechanical keyboard shopping (Keychron),https://www.keychron.com/products/keychron-k8-pro-qmk,Keychron K8 Pro QMK wireless mechanical keyboard,user-domain-2
+Mechanical keyboard shopping (Keychron),https://www.keychron.com/products/keychron-k2-hot-swappable,Keychron K2 hot-swappable compact keyboard,user-domain-2
+Mechanical keyboard shopping (Keychron),https://www.keychron.com/pages/compare-keychron-mechanical-keyboards,Compare Keychron mechanical keyboards,user-domain-2
+Monitor shopping (BestBuy),https://www.bestbuy.com/site/27-ips-gaming-monitor/monitor-1,"27"" IPS Gaming Monitor 144Hz - Best Buy",user-domain-2
+Monitor shopping (BestBuy),https://www.bestbuy.com/site/34-ultrawide-monitor/monitor-2,"34"" Ultrawide monitor for productivity - Best Buy",user-domain-2
+Monitor shopping (BestBuy),https://www.bestbuy.com/site/searchpage.jsp?st=4k+monitor,4k monitor search results - Best Buy,user-domain-2
+Project management board (Trello),https://trello.com/b/proj1234/system-redesign-backlog,System redesign backlog - Trello,user-domain-3
+Project management board (Trello),https://trello.com/c/card1234/system-design-task-breakdown,Task breakdown for system design milestones - Trello,user-domain-3
+Project management board (Trello),https://trello.com/c/card5678/infra-migration-checklist,Infra migration checklist - Trello,user-domain-3
+Architecture notes (Notion),https://www.notion.so/workspace/System-Design-Home-123456789,System design workspace home - Notion,user-domain-3
+Architecture notes (Notion),https://www.notion.so/workspace/Message-queue-architecture-987654321,Message queue architecture notes - Notion,user-domain-3
+Architecture notes (Notion),https://www.notion.so/workspace/Cache-eviction-strategies-555555555,Cache eviction strategies - Notion,user-domain-3
+Repository review (GitHub),https://github.com/org/system-design-prototype/pulls,Pull requests · system-design-prototype · GitHub,user-domain-3
+Repository review (GitHub),https://github.com/org/system-design-prototype/issues,Issues · system-design-prototype · GitHub,user-domain-3
+Repository review (GitHub),https://github.com/org/system-design-prototype/wiki/Architecture,Architecture wiki · system-design-prototype · GitHub,user-domain-3
+Groceries weekly order (Instacart),https://www.instacart.com/store/safeway/items,Safeway weekly groceries - Instacart,user-domain-4
+Groceries weekly order (Instacart),https://www.instacart.com/store/costco/items,Costco bulk items for the month - Instacart,user-domain-4
+Groceries weekly order (Instacart),https://www.instacart.com/store/trader-joes/items,Trader Joe's snacks and frozen meals - Instacart,user-domain-4
+Groceries weekly order (Amazon Fresh),https://www.amazon.com/alm/storefront?almBrandId=QW1hem9uIEZyZXNo,Amazon Fresh grocery storefront,user-domain-4
+Groceries weekly order (Amazon Fresh),https://www.amazon.com/s?k=vegetables&i=amazon-fresh,Fresh vegetables - Amazon Fresh,user-domain-4
+Groceries weekly order (Amazon Fresh),https://www.amazon.com/s?k=dairy&i=amazon-fresh,Dairy products - Amazon Fresh,user-domain-4
+Takeout orders (DoorDash),https://www.doordash.com/store/thai-restaurant-123,Thai Restaurant · Pad thai and curries - DoorDash,user-domain-4
+Takeout orders (DoorDash),https://www.doordash.com/store/pizza-place-456,Local Pizza Place · Margherita and pepperoni - DoorDash,user-domain-4
+Takeout orders (DoorDash),https://www.doordash.com/store/ramen-shop-789,Ramen Shop · Tonkotsu and miso ramen - DoorDash,user-domain-4
+Tech news (The Verge),https://www.theverge.com/2025/02/01/new-laptop-lineup-review,New ultraportable laptop lineup review - The Verge,user-domain-5
+Tech news (The Verge),https://www.theverge.com/2025/02/02/browser-performance-comparison,Modern browser performance comparison - The Verge,user-domain-5
+Tech news (The Verge),https://www.theverge.com/2025/02/03/privacy-updates-major-browsers,Privacy updates in major browsers - The Verge,user-domain-5
+Tech news (Ars Technica),https://arstechnica.com/gadgets/2025/02/deep-dive-into-cpu-microarchitecture,Deep dive into CPU microarchitecture - Ars Technica,user-domain-5
+Tech news (Ars Technica),https://arstechnica.com/information-technology/2025/02/web-performance-benchmarks,Web performance benchmarks in 2025 - Ars Technica,user-domain-5
+Tech news (Ars Technica),https://arstechnica.com/information-technology/2025/02/security-roundup-browser-patches,Security roundup: browser patches - Ars Technica,user-domain-5
+Tech news (Hacker News mirrors),https://news.ycombinator.com/item?id=12345678,Ask HN: Best resources for large-scale system design?,user-domain-5
+Tech news (Hacker News mirrors),https://news.ycombinator.com/item?id=23456789,Show HN: Minimal monitoring dashboard for side projects,user-domain-5
+Tech news (Hacker News mirrors),https://news.ycombinator.com/item?id=34567890,Launch HN: New time-series database for observability,user-domain-5
