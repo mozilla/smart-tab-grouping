@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Group Collector",
+  "version": "2.0",
+  "description": "Exports your tab groups as JSON, as reference data for evaluating automatic tab grouping.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tab-group-collector@mozilla.org",
+      "strict_min_version": "139.0",
+      "data_collection_permissions": {
+        "required": ["browsingActivity"]
+      }
+    }
+  },
+  "permissions": ["tabs", "tabGroups", "clipboardWrite"],
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "48": "icon-48.png"
+    },
+    "default_title": "Tab Group Collector"
+  }
+}
