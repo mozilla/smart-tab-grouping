@@ -33,6 +33,14 @@ python utils/grouping_pipeline.py
 ```
 
  
+### Tab Group Collector add-on
+
+A Firefox add-on for collecting reference data: it exports the tab groups a person has
+made, with their own names for them, as JSON. Useful for evaluating clustering and
+group naming against how people actually organise their tabs.
+
+See `addon/README.md`.
+
 ### Topic Name Data Generation Pipeline
 
 ![Smart Tab Grouping Diagram](images/synthetic-data-arch.png)

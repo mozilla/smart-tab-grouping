@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tab Group Collector</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 12px;
+      width: 560px;
+    }
+    h1 {
+      font-size: 16px;
+      margin: 0 0 4px;
+    }
+    .intro {
+      font-size: 12px;
+      color: #5b5b66;
+      margin: 0 0 12px;
+    }
+    .group {
+      border: 1px solid #d7d7db;
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+    .group_head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .group_name {
+      flex: 1;
+      font-size: 14px;
+      padding: 2px 4px;
+    }
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex: none;
+    }
+    .count {
+      font-size: 11px;
+      color: #5b5b66;
+    }
+    .tab_title {
+      font-size: 12px;
+      color: #1c1c1c;
+      margin: 3px 0 0 22px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .unnamed {
+      outline: 2px solid #d70022;
+    }
+    .ungrouped {
+      background: #f9f9fb;
+      border-style: dashed;
+    }
+    .ungrouped .group_name {
+      font-style: italic;
+      color: #5b5b66;
+    }
+    .options {
+      font-size: 12px;
+      border-top: 1px solid #d7d7db;
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .options p {
+      margin: 0;
+    }
+    .options input[type="text"] {
+      width: 100%;
+      margin-top: 2px;
+    }
+    button {
+      padding: 8px 14px;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    #status {
+      font-size: 12px;
+      color: #058b00;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tab Group Collector</h1>
+  <p class="intro">
+    Arrange and name your tab groups first. When you are happy with them, export here.
+    Uncheck anything you would rather not share. Group names are taken from the browser;
+    edit them below only if one is blank.
+  </p>
+
+  <div id="groups"></div>
+
+  <div class="options">
+    <p>
+      Words to redact from titles, space separated, four letters or longer
+      (e.g. your surname):
+      <input type="text" id="remove_words">
+    </p>
+  </div>
+
+  <button id="copyButton">Copy JSON</button>
+  <span id="status"></span>
+
+  <script src="popup.js"></script>
+</body>
+</html>
