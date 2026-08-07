@@ -71,12 +71,17 @@ def load_secret(secret_id: str) -> str:
 
 def load_remote_env():
     # Load secrets
-    json_secrets = ['metaflow-job-secrets']
+    json_secrets = ["metaflow-job-secrets"]
     for secret_id in json_secrets:
         raw_env = load_secret(secret_id)
         envs = json.loads(raw_env)
         for k, v in envs.items():
-            os.environ[k.upper()] = v
+            # Convert non-string values to JSON strings for environment variables
+            # (os.environ only accepts string values)
+            if isinstance(v, str):
+                os.environ[k.upper()] = v
+            else:
+                os.environ[k.upper()] = json.dumps(v)
 
     print(f"Loaded secrets from {get_project_id()}")
 

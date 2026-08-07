@@ -2,7 +2,7 @@ from metaflow import (
     FlowSpec,
     step,
     card,
-    current, resources, kubernetes, nvidia, conda, gpu_profile)
+    current, resources, kubernetes)
 from metaflow.cards import Table
 import pandas as pd
 from distill_t5 import DistillTopicT5
@@ -45,7 +45,7 @@ UNLABELED_DATA_PATHS = ["topic/common_crawl_unlabeled_00000.csv", "topic/common_
 NOISE_TRAINING_DATA_SET_INDEX = 1
 
 SINGLE_TAB_VALIDATION_PATH = "topic/single_tab_validation.csv"
-
+DOCKER_IMAGE = "us-docker.pkg.dev/moz-fx-mozsoc-ml-nonprod/metaflow-dockers/metaflow_smart_tab_grouping:stg_update"
 
 def create_trainer_for_config(config: dict[str, any]):
     if "t5" in config["model_name"]:
@@ -66,28 +66,20 @@ class TuneGenTopicModel(FlowSpec):
     This model is used for the Smart Tab Grouping project
     """
 
-    @nvidia()
-    @conda(python='3.11.9',
-           libraries={
-               'pandas': '1.5.3',
-               'numpy': '1.26.4',
-               'nltk': '3.9.1',
-               'transformers[torch]': '4.40.2',
-               'conda-forge::accelerate': '1.5.2',
-               'tqdm': '4.66.5',
-               'scikit-learn': '1.5.1',
-               "pytorch::pytorch-cuda": "12.4",
-               "pytorch::pytorch": "2.4.0",
-               'datasets': '2.19.2',
-               'wandb': '0.16.6',
-               'pydantic': '2.8.2',
-               'conda-forge::sentencepiece': '0.2.0',
-               'conda-forge::google-cloud-storage': '3.1.0',
-               'conda-forge::pyspellchecker': '0.8.0',
-               'conda-forge::google-cloud-secret-manager': '2.23.2',
-               'conda-forge::rouge-score': '0.1.2',
-               'conda-forge::python-dotenv': '1.1.0'
-           })
+    @kubernetes(
+        gpu="1",
+        memory=70000,
+        shared_memory=4096,
+        image=DOCKER_IMAGE,
+        # disk=20240,
+        cpu=2,
+
+        gpu_vendor="nvidia",
+        node_selector={"node.kubernetes.io/instance-type": "a2-highgpu-1g"},
+        # tolerations=[
+        #     {"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"}
+        # ],
+    )
     @card
     @step
     def start(self):
@@ -128,29 +120,19 @@ class TuneGenTopicModel(FlowSpec):
 
         self.next(self.train, foreach='configs')
 
-    @gpu_profile(interval=1)
-    @nvidia()
-    @conda(python='3.11.9',
-           libraries={
-               'pandas': '1.5.3',
-               'numpy': '1.26.4',
-               'nltk': '3.9.1',
-               'transformers[torch]': '4.40.2',
-               'conda-forge::accelerate': '1.5.2',
-               'tqdm': '4.66.5',
-               'scikit-learn': '1.5.1',
-               "pytorch::pytorch-cuda": "12.4",
-               "pytorch::pytorch": "2.4.0",
-               'datasets': '2.19.2',
-               'wandb': '0.16.6',
-               'pydantic': '2.8.2',
-               'conda-forge::sentencepiece': '0.2.0',
-               'conda-forge::google-cloud-storage': '3.1.0',
-               'conda-forge::pyspellchecker': '0.8.0',
-               'conda-forge::google-cloud-secret-manager': '2.23.2',
-               'conda-forge::rouge-score': '0.1.2',
-               'conda-forge::python-dotenv': '1.1.0'
-           })
+    @kubernetes(
+        gpu="1",
+        memory=70000,
+        shared_memory=4096,
+        # disk=20240,
+        cpu=2,
+        gpu_vendor="nvidia",
+        image=DOCKER_IMAGE,
+        node_selector={"node.kubernetes.io/instance-type": "a2-highgpu-1g"},
+        # tolerations=[
+        #     {"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"}
+        # ],
+    )
     @card
     @step
     def train(self):
@@ -211,55 +193,36 @@ class TuneGenTopicModel(FlowSpec):
         trainer.train()
         self.next(self.join)
 
-    @nvidia()
-    @conda(python='3.11.9',
-           libraries={
-               'pandas': '1.5.3',
-               'numpy': '1.26.4',
-               'nltk': '3.9.1',
-               'transformers[torch]': '4.40.2',
-               'conda-forge::accelerate': '1.5.2',
-               'tqdm': '4.66.5',
-               'scikit-learn': '1.5.1',
-               "pytorch::pytorch-cuda": "12.4",
-               "pytorch::pytorch": "2.4.0",
-               'datasets': '2.19.2',
-               'wandb': '0.16.6',
-               'pydantic': '2.8.2',
-               'conda-forge::sentencepiece': '0.2.0',
-               'conda-forge::google-cloud-storage': '3.1.0',
-               'conda-forge::pyspellchecker': '0.8.0',
-               'conda-forge::google-cloud-secret-manager': '2.23.2',
-               'conda-forge::rouge-score': '0.1.2',
-               'conda-forge::python-dotenv': '1.1.0'
-           })
-    @card
+    @kubernetes(
+        gpu="1",
+        memory=70000,
+        shared_memory=4096,
+        # disk=20240,
+        image=DOCKER_IMAGE,
+        cpu=2,
+        gpu_vendor="nvidia",
+        node_selector={"node.kubernetes.io/instance-type": "a2-highgpu-1g"},
+        # tolerations=[
+        #     {"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"}
+        # ],
+    )
     @step
     def join(self, inputs):
         self.next(self.end)
 
-    @nvidia()
-    @conda(python='3.11.9',
-           libraries={
-               'pandas': '1.5.3',
-               'numpy': '1.26.4',
-               'nltk': '3.9.1',
-               'transformers[torch]': '4.40.2',
-               'conda-forge::accelerate': '1.5.2',
-               'tqdm': '4.66.5',
-               'scikit-learn': '1.5.1',
-               "pytorch::pytorch-cuda": "12.4",
-               "pytorch::pytorch": "2.4.0",
-               'datasets': '2.19.2',
-               'wandb': '0.16.6',
-               'pydantic': '2.8.2',
-               'conda-forge::sentencepiece': '0.2.0',
-               'conda-forge::google-cloud-storage': '3.1.0',
-               'conda-forge::pyspellchecker': '0.8.0',
-               'conda-forge::google-cloud-secret-manager': '2.23.2',
-               'conda-forge::rouge-score': '0.1.2',
-               'conda-forge::python-dotenv': '1.1.0'
-           })
+    @kubernetes(
+        gpu="1",
+        memory=70000,
+        shared_memory=4096,
+        # disk=20240,
+        image=DOCKER_IMAGE,
+        cpu=2,
+        gpu_vendor="nvidia",
+        node_selector={"node.kubernetes.io/instance-type": "a2-highgpu-1g"},
+        # tolerations=[
+        #     {"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"}
+        # ],
+    )
     @step
     def end(self):
         pass
