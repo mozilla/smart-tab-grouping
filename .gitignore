@@ -168,3 +168,6 @@ private
 output
 src/wandb
 wandb/
+
+# macOS metadata
+.DS_Store
