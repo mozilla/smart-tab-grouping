@@ -19,6 +19,8 @@ test split is never used for selection.
   `gs://stage-fx-tab-grouping/topic/` with the repository's existing GCS helper.
 - Historical inputs come only from the tracked `data/external`, `data/extract`,
   and `data/synthetic_datasets` directories.
+- The held-out golden naming set is stored at
+  `gs://stage-fx-tab-grouping/topic/eval/golden_tab_grouping.json`.
 - The trainer downloads `moso/tab_grouping/model-v40xoz3q:v0` from W&B.
 - The exact deployed v0.7.4 generation config, including all 1,466 blocked
   output sequences, is downloaded from Mozilla's public model hub.
@@ -66,3 +68,18 @@ REFRESH_DOWNLOADS=1 ./experiments/run_multitab_distillation.sh
 The selected model directory includes its tokenizer and generated
 `bad_words_ids`, and is ready for the repository's existing ONNX/Q8 export
 workflow.
+
+## Golden-set evaluation
+
+Download the canonical golden set to the ignored output directory:
+
+```bash
+mkdir -p output/eval
+gcloud storage cp \
+  gs://stage-fx-tab-grouping/topic/eval/golden_tab_grouping.json \
+  output/eval/golden_tab_grouping.json
+```
+
+Use this set only for the final comparison after selecting a checkpoint from
+the development split. Do not use golden-set results for training, early
+stopping, hyperparameter tuning, or checkpoint selection.
